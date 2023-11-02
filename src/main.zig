@@ -2,6 +2,14 @@ const std = @import("std");
 const microzig = @import("microzig");
 const regs = @import("regs/stm32f407.zig").devices.STM32F407.peripherals;
 
+pub fn main() !void {
+    var led = Led.init();
+    while (true) {
+        delay(500);
+        led.toggle();
+    }
+}
+
 const Led = struct {
     state: bool,
 
@@ -35,14 +43,14 @@ const Led = struct {
     }
 };
 
-pub fn main() !void {
-    var led = Led.init();
-    while (true) {
-        var i: u32 = 0;
-        while (i < 800_000) {
-            asm volatile ("nop");
-            i += 1;
-        }
-        led.toggle();
+pub fn delay(ms: u32) void {
+    // CPU run at 16mHz on HSI16
+    // each tick is 5 instructions (1000 * 16 / 5) = 3200
+    var ticks = ms * (1000 * 16 / 5);
+    var i: u32 = 0;
+    // One loop is 5 instructions
+    while (i < ticks) {
+        microzig.cpu.nop();
+        i += 1;
     }
 }
