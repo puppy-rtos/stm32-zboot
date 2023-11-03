@@ -14,7 +14,7 @@ const available_examples = [_]Example{
 
 pub fn build(b: *std.Build) void {
     const microzig = @import("microzig").init(b, "microzig");
-    const optimize = .ReleaseSmall; // The others are not really an option on AVR
+    const optimize = .Debug; // The others are not really an option on AVR
 
     for (available_examples) |example| {
         // `addFirmware` basically works like addExecutable, but takes a

@@ -2,8 +2,8 @@ const micro = @import("microzig");
 const mmio = micro.mmio;
 
 pub const devices = struct {
-    ///  STM32F407
-    pub const STM32F407 = struct {
+    ///  STM32F4
+    pub const stm32f4 = struct {
         pub const properties = struct {
             pub const @"cpu.endian" = "little";
             pub const @"cpu.mpuPresent" = "true";
