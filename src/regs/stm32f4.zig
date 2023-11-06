@@ -2966,64 +2966,26 @@ pub const types = struct {
             ///  PLL configuration register
             PLLCFGR: mmio.Mmio(packed struct(u32) {
                 ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM0: u1,
-                ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM1: u1,
-                ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM2: u1,
-                ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM3: u1,
-                ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM4: u1,
-                ///  Division factor for the main PLL (PLL) and audio PLL (PLLI2S) input clock
-                PLLM5: u1,
+                PLLM: u6,
                 ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN0: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN1: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN2: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN3: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN4: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN5: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN6: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN7: u1,
-                ///  Main PLL (PLL) multiplication factor for VCO
-                PLLN8: u1,
+                PLLN: u9,
                 reserved16: u1,
                 ///  Main PLL (PLL) division factor for main system clock
-                PLLP0: u1,
-                ///  Main PLL (PLL) division factor for main system clock
-                PLLP1: u1,
+                PLLP: u2,
                 reserved22: u4,
                 ///  Main PLL(PLL) and audio PLL (PLLI2S) entry clock source
                 PLLSRC: u1,
                 reserved24: u1,
                 ///  Main PLL (PLL) division factor for USB OTG FS, SDIO and random number generator clocks
-                PLLQ0: u1,
-                ///  Main PLL (PLL) division factor for USB OTG FS, SDIO and random number generator clocks
-                PLLQ1: u1,
-                ///  Main PLL (PLL) division factor for USB OTG FS, SDIO and random number generator clocks
-                PLLQ2: u1,
-                ///  Main PLL (PLL) division factor for USB OTG FS, SDIO and random number generator clocks
-                PLLQ3: u1,
+                PLLQ: u4,
                 padding: u4,
             }),
             ///  clock configuration register
             CFGR: mmio.Mmio(packed struct(u32) {
                 ///  System clock switch
-                SW0: u1,
-                ///  System clock switch
-                SW1: u1,
+                SW: u2,
                 ///  System clock switch status
-                SWS0: u1,
-                ///  System clock switch status
-                SWS1: u1,
+                SWS: u2,
                 ///  AHB prescaler
                 HPRE: u4,
                 reserved10: u2,

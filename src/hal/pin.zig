@@ -42,6 +42,9 @@ pub const Pin = struct {
 fn parseU32(input: []const u8) !u32 {
     var tmp: u32 = 0;
     for (input) |c| {
+        if (c == 0) {
+            break;
+        }
         const digit = try std.fmt.charToDigit(c, 10);
         tmp = tmp * 10 + @as(u32, digit);
     }
