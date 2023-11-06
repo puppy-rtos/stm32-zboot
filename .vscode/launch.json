@@ -5,9 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "f407",
+            "cwd": "${workspaceFolder}",
+            "executable": "zig-out/firmware/zboot-f4.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "Reset_handler",
+            "targetId": "stm32f407ve",
+            "cmsisPack": "D:/RT-ThreadStudio/repo/Extract/Debugger_Support_Packages/RealThread/PyOCD/0.2.0/packs/Keil.STM32F4xx_DFP.2.14.0-small.pack",
+            "servertype": "pyocd",
+            "armToolchainPath": "D:/Progrem/env-windows/tools/gnu_gcc/arm_gcc/mingw/bin",
+            "gdbPath": "D:/Progrem/env-windows/tools/gnu_gcc/arm_gcc/mingw/bin/arm-none-eabi-gdb.exe",
+        },
+        {
             "name": "Cortex Debug",
             "cwd": "${workspaceFolder}",
-            "executable": "./zig-out/firmware/zboot-f4.elf",
+            "executable": "zig-out/firmware/zboot-f4.elf",
             "request": "launch",
             "serverpath": "D:/Tools/JLink/JLinkGDBServerCL.exe",
             "type": "cortex-debug",
