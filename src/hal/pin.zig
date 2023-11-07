@@ -28,12 +28,12 @@ pub const Pin = struct {
         return self;
     }
 
-    pub fn set(self: *@This()) void {
+    pub fn set(self: *const @This()) void {
         const pin_set = std.math.shl(u32, 1, self.pin);
         self.port.ODR.raw = self.port.ODR.raw | pin_set;
     }
 
-    pub fn clear(self: *@This()) void {
+    pub fn clear(self: *const @This()) void {
         const pin_set = std.math.shl(u32, 1, self.pin);
         self.port.ODR.raw = self.port.ODR.raw & ~pin_set;
     }
