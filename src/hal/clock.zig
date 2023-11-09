@@ -3,6 +3,8 @@ const regs = @import("../regs/stm32f4.zig").devices.stm32f4.peripherals;
 const types = @import("../regs/stm32f4.zig").types;
 const microzig = @import("microzig");
 
+var sysfreq: u32 = 0;
+
 pub fn clock_init() void {
 
     // Enable power interface clock
@@ -35,6 +37,11 @@ pub fn clock_init() void {
     // Use PLL as system clock
     regs.RCC.CFGR.modify(.{ .SW = 0b10 });
     while (regs.RCC.CFGR.read().SWS != 0b10) {}
+
+    sysfreq = get_sysfreq();
+    // init systick
+    microzig.cpu.peripherals.SysTick.LOAD.raw = 0xFFFFFF;
+    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 1, .CLKSOURCE = 1 });
 }
 
 const HSI_VALUE = 16000000; // 16MHz
@@ -71,28 +78,31 @@ pub fn get_sysfreq() u32 {
     return sysclockfreq;
 }
 
-// delay_us
-pub fn delay_us(us: u32) void {
-    // CPU run at 16mHz on HSI16
-    // each tick is 5 instructions (1000 * 16 / 5) = 3200
-    var ticks = us * (16 / 5);
-    var i: u32 = 0;
-    // One loop is 5 instructions
-    while (i < ticks) {
-        microzig.cpu.nop();
-        i += 1;
+// delay_ms
+pub fn delay_ms(ms: u32) void {
+    for (0..ms) |i| {
+        _ = i;
+        delay_us(1000);
     }
 }
 
-// delay_ms
-pub fn delay_ms(ms: u32) void {
-    // CPU run at 16mHz on HSI16
-    // each tick is 5 instructions (1000 * 16 / 5) = 3200
-    var ticks = ms * (1000 * 16 / 5);
-    var i: u32 = 0;
-    // One loop is 5 instructions
-    while (i < ticks) {
-        microzig.cpu.nop();
-        i += 1;
+// delay us
+pub fn delay_us(us: u32) void {
+    var ticks: u32 = 0;
+    var start: u32 = 0;
+    var current: u32 = 0;
+
+    ticks = us * (sysfreq / 1000000);
+    start = microzig.cpu.peripherals.SysTick.VAL.raw;
+    while (true) {
+        current = microzig.cpu.peripherals.SysTick.VAL.raw;
+        if (start < current) {
+            current = start + (0xFFFFFF - current);
+        } else {
+            current = start - current;
+        }
+        if (current > ticks) {
+            break;
+        }
     }
 }
