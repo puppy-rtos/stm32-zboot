@@ -4,7 +4,7 @@ const types = @import("../regs/stm32f4.zig").types;
 const clock = @import("clock.zig");
 const Pin = @import("pin.zig").Pin;
 
-const DEALY_US = 100;
+const DEALY_US = 8;
 
 // soft uart
 const Uart = struct {
