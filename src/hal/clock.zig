@@ -33,10 +33,14 @@ pub fn clock_init() void {
     // Enable PLL
     regs.RCC.CR.modify(.{ .PLLON = 1 });
     // Wait for PLL ready
-    while (regs.RCC.CR.read().PLLRDY != 1) {}
+    while (regs.RCC.CR.read().PLLRDY != 1) {
+        microzig.cpu.nop();
+    }
     // Use PLL as system clock
     regs.RCC.CFGR.modify(.{ .SW = 0b10 });
-    while (regs.RCC.CFGR.read().SWS != 0b10) {}
+    while (regs.RCC.CFGR.read().SWS != 0b10) {
+        microzig.cpu.nop();
+    }
 
     sysfreq = get_sysfreq();
     // init systick
@@ -96,6 +100,7 @@ pub fn delay_us(us: u32) void {
     start = microzig.cpu.peripherals.SysTick.VAL.raw;
     while (true) {
         current = microzig.cpu.peripherals.SysTick.VAL.raw;
+        microzig.cpu.nop();
         if (start < current) {
             current = start + (0xFFFFFF - current);
         } else {
