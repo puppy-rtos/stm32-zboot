@@ -16,9 +16,9 @@ pub const Flash_Dev = struct {
         // erase the flash block
         erase: *const fn (addr: u32, size: u32) void,
         // write the flash
-        write: *const fn (addr: u32, data: []const u8, size: u32) void,
+        write: *const fn (addr: u32, data: []const u8) void,
         // read the flash
-        read: *const fn (addr: u32, data: []u8, size: u32) void,
+        read: *const fn (addr: u32, data: []u8) void,
     },
     pub fn init(self: *const @This()) void {
         self.ops.init();
@@ -26,10 +26,10 @@ pub const Flash_Dev = struct {
     pub fn erase(self: *const @This(), addr: u32, size: u32) void {
         self.ops.erase(addr, size);
     }
-    pub fn write(self: *const @This(), addr: u32, data: []const u8, size: u32) void {
-        self.ops.write(addr, data, size);
+    pub fn write(self: *const @This(), addr: u32, data: []const u8) void {
+        self.ops.write(addr, data);
     }
-    pub fn read(self: *const @This(), addr: u32, data: []u8, size: u32) void {
-        self.ops.read(addr, data, size);
+    pub fn read(self: *const @This(), addr: u32, data: []u8) void {
+        self.ops.read(addr, data);
     }
 };
