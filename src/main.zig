@@ -32,13 +32,23 @@ pub fn jump_app() void {
     jump2app();
 }
 
-pub fn flash_init() void {
-    debug_writer.print("flash_init\r\n", .{}) catch {};
+pub fn flash_init(self: *const hal.flash.Flash_Dev) void {
+    debug_writer.print("Flash[{s}]:inited\r\n", .{self.name}) catch {};
+    var offset: u32 = 0;
+    for (self.blocks, 0..) |b, i| {
+        if (b.size == 0 or b.count == 0) {
+            break;
+        }
+        debug_writer.print("Flash[{s}]:block[{d}]{x:0>4}-{x:0>4}:size:0x{x},count:{d}\r\n", .{ self.name, i, self.start + offset, self.start + offset + b.size * b.count, b.size, b.count }) catch {};
+        offset = offset + b.size * b.count;
+    }
 }
-pub fn flash_earse(addr: u32, size: u32) void {
+pub fn flash_earse(self: *const hal.flash.Flash_Dev, addr: u32, size: u32) void {
+    _ = self;
     debug_writer.print("flash_earse:addr:0x{x},size:0x{x}\r\n", .{ addr, size }) catch {};
 }
-pub fn flash_write(addr: u32, data: []const u8) void {
+pub fn flash_write(self: *const hal.flash.Flash_Dev, addr: u32, data: []const u8) void {
+    _ = self;
     debug_writer.print("flash_write:addr:0x{x}, data_ptr:0x{x}, size:{x} \r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
     // dump data
     for (data, 0..) |*d, i| {
@@ -52,7 +62,8 @@ pub fn flash_write(addr: u32, data: []const u8) void {
     }
     debug_writer.print("\r\n", .{}) catch {};
 }
-pub fn flash_read(addr: u32, data: []u8) void {
+pub fn flash_read(self: *const hal.flash.Flash_Dev, addr: u32, data: []u8) void {
+    _ = self;
     debug_writer.print("flash_read:addr:0x{x}, data_ptr:0x{x}, size:{x}\r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
 
     // read data from onchip flash
@@ -84,7 +95,14 @@ pub fn main() !void {
         .name = "flash1",
         .start = 0x08000000,
         .len = 0x100000,
-        .block_size = 0x1000,
+        .blocks = .{
+            .{ .size = 0x4000, .count = 4 },
+            .{ .size = 0x10000, .count = 1 },
+            .{ .size = 0x20000, .count = 7 },
+            .{ .size = 0x4000, .count = 4 },
+            .{ .size = 0x10000, .count = 1 },
+            .{ .size = 0x20000, .count = 7 },
+        },
         .write_size = 8,
         .ops = .{
             .init = &flash_init,
