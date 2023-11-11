@@ -7,6 +7,7 @@ const hal = @import("hal.zig");
 var debug_writer: hal.uart.UartDebug().Writer = undefined;
 
 pub fn show_logo() void {
+    debug_writer.print("\r\n", .{}) catch {};
     debug_writer.print("{s}\r\n", .{"  _____   __                __ "}) catch {};
     debug_writer.print("{s}\r\n", .{" /__  /  / /_  ____  ____  / /_"}) catch {};
     debug_writer.print("{s}\r\n", .{"   / /  / __ \\/ __ \\/ __ \\/ __/"}) catch {};
@@ -31,12 +32,44 @@ pub fn jump_app() void {
     jump2app();
 }
 
+pub fn flash_init() void {
+    debug_writer.print("flash_init\r\n", .{}) catch {};
+}
+pub fn flash_earse(addr: u32, size: u32) void {
+    debug_writer.print("flash_earse:addr:0x{x},size:0x{x}\r\n", .{ addr, size }) catch {};
+}
+pub fn flash_write(addr: u32, data: []const u8, size: u32) void {
+    debug_writer.print("flash_write:addr:0x{x}, data_ptr:0x{x}, size:{x} \r\n", .{ addr, @intFromPtr(data.ptr), size }) catch {};
+}
+pub fn flash_read(addr: u32, data: []u8, size: u32) void {
+    debug_writer.print("flash_read:addr:0x{x}, data_ptr:0x{x}, size:{x}\r\n", .{ addr, @intFromPtr(data.ptr), size }) catch {};
+}
+
 pub fn main() !void {
     hal.clock.clock_init();
     debug_writer = (try hal.uart.UartDebug().init("PA9")).writer();
     _ = debug_writer;
 
     show_logo();
+
+    const flash1: hal.flash.Flash_Dev = .{
+        .name = "flash1",
+        .start = 0x08000000,
+        .len = 0x100000,
+        .block_size = 0x1000,
+        .write_size = 8,
+        .ops = .{
+            .init = &flash_init,
+            .erase = &flash_earse,
+            .write = &flash_write,
+            .read = &flash_read,
+        },
+    };
+    flash1.init();
+    flash1.erase(0x08000000, 0x1000);
+    flash1.write(0x08000000, "hello", 5);
+    var buf: [5]u8 = undefined;
+    flash1.read(0x08000000, &buf, 5);
 
     jump_app();
 
@@ -47,31 +80,3 @@ pub fn main() !void {
         hal.clock.delay_ms(1000);
     }
 }
-
-const Led = struct {
-    state: bool,
-    pin: hal.Pin,
-
-    pub fn init(name: []const u8) !@This() {
-        var self = Led{ .state = false, .pin = try hal.Pin.init(name) };
-        return self;
-    }
-
-    pub fn on(self: *@This()) void {
-        self.state = true;
-        self.pin.clear();
-    }
-
-    pub fn off(self: *@This()) void {
-        self.state = false;
-        self.pin.set();
-    }
-
-    pub fn toggle(self: *@This()) void {
-        if (self.state) {
-            self.off();
-        } else {
-            self.on();
-        }
-    }
-};

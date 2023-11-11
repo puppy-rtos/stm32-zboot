@@ -44,10 +44,6 @@ const Uart = struct {
     }
 };
 
-pub const InitError = error{
-    InvalidBusFrequency,
-    InvalidSpeed,
-};
 pub const WriteError = error{};
 pub const ReadError = error{
     EndOfStream,
