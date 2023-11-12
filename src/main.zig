@@ -3,16 +3,15 @@ const microzig = @import("microzig");
 const regs = @import("regs/stm32f4.zig").devices.stm32f4.peripherals;
 const types = @import("regs/stm32f4.zig").types;
 const hal = @import("hal.zig");
-
-var debug_writer: hal.uart.UartDebug().Writer = undefined;
+const sys = @import("sys.zig");
 
 pub fn show_logo() void {
-    debug_writer.print("\r\n", .{}) catch {};
-    debug_writer.print("{s}\r\n", .{"  _____   __                __ "}) catch {};
-    debug_writer.print("{s}\r\n", .{" /__  /  / /_  ____  ____  / /_"}) catch {};
-    debug_writer.print("{s}\r\n", .{"   / /  / __ \\/ __ \\/ __ \\/ __/"}) catch {};
-    debug_writer.print("{s}\r\n", .{"  / /__/ /_/ / /_/ / /_/ / /_  "}) catch {};
-    debug_writer.print("{s}\r\n", .{" /____/\\____/\\____/\\____/\\__/  "}) catch {};
+    sys.debug.print("\r\n", .{}) catch {};
+    sys.debug.print("{s}\r\n", .{"  _____   __                __ "}) catch {};
+    sys.debug.print("{s}\r\n", .{" /__  /  / /_  ____  ____  / /_"}) catch {};
+    sys.debug.print("{s}\r\n", .{"   / /  / __ \\/ __ \\/ __ \\/ __/"}) catch {};
+    sys.debug.print("{s}\r\n", .{"  / /__/ /_/ / /_/ / /_/ / /_  "}) catch {};
+    sys.debug.print("{s}\r\n", .{" /____/\\____/\\____/\\____/\\__/  "}) catch {};
 }
 const APP_ENTRY_ADDR = 0x08008000;
 const APP_RAM_ADDR = 0x20000000;
@@ -22,95 +21,23 @@ pub fn jump_app() void {
     const app_stack_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR)).*;
     // Check stack address
     if (app_stack_addr < APP_RAM_ADDR or app_stack_addr > APP_RAM_ADDR + APP_RAM_SIZE) {
-        debug_writer.print("Invalid stack address: 0x{x}\r\n", .{app_stack_addr}) catch {};
+        sys.debug.print("Invalid stack address: 0x{x}\r\n", .{app_stack_addr}) catch {};
         return;
     }
     const jump_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR + 4)).*;
     const jump2app: *const fn () void = @ptrFromInt(jump_addr);
 
-    debug_writer.print("jump_addr:0x{x}\r\n", .{jump_addr}) catch {};
+    sys.debug.print("jump_addr:0x{x}\r\n", .{jump_addr}) catch {};
     jump2app();
-}
-
-pub fn flash_init(self: *const hal.flash.Flash_Dev) void {
-    debug_writer.print("Flash[{s}]:inited\r\n", .{self.name}) catch {};
-    var offset: u32 = 0;
-    for (self.blocks, 0..) |b, i| {
-        if (b.size == 0 or b.count == 0) {
-            break;
-        }
-        debug_writer.print("Flash[{s}]:block[{d}]{x:0>4}-{x:0>4}:size:0x{x},count:{d}\r\n", .{ self.name, i, self.start + offset, self.start + offset + b.size * b.count, b.size, b.count }) catch {};
-        offset = offset + b.size * b.count;
-    }
-}
-pub fn flash_earse(self: *const hal.flash.Flash_Dev, addr: u32, size: u32) void {
-    _ = self;
-    debug_writer.print("flash_earse:addr:0x{x},size:0x{x}\r\n", .{ addr, size }) catch {};
-}
-pub fn flash_write(self: *const hal.flash.Flash_Dev, addr: u32, data: []const u8) void {
-    _ = self;
-    debug_writer.print("flash_write:addr:0x{x}, data_ptr:0x{x}, size:{x} \r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
-    // dump data
-    for (data, 0..) |*d, i| {
-        if (i % 16 == 0) {
-            debug_writer.print("0x{x:0>8}:", .{addr + i}) catch {};
-        }
-        debug_writer.print(" {x:0>2}", .{d.*}) catch {};
-        if (i % 16 == 15) {
-            debug_writer.print("\r\n", .{}) catch {};
-        }
-    }
-    debug_writer.print("\r\n", .{}) catch {};
-}
-pub fn flash_read(self: *const hal.flash.Flash_Dev, addr: u32, data: []u8) void {
-    _ = self;
-    debug_writer.print("flash_read:addr:0x{x}, data_ptr:0x{x}, size:{x}\r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
-
-    // read data from onchip flash
-    for (data, 0..) |*d, i| {
-        d.* = @as(*u8, @ptrFromInt(addr + i)).*;
-    }
-
-    // dump data
-    for (data, 0..) |d, i| {
-        if (i % 16 == 0) {
-            debug_writer.print("0x{x:0>8}:", .{addr + i}) catch {};
-        }
-        debug_writer.print(" {x:0>2}", .{d}) catch {};
-        if (i % 16 == 15) {
-            debug_writer.print("\r\n", .{}) catch {};
-        }
-    }
-    debug_writer.print("\r\n", .{}) catch {};
 }
 
 pub fn main() !void {
     hal.clock.clock_init();
-    debug_writer = (try hal.uart.UartDebug().init("PA9")).writer();
-    _ = debug_writer;
-
+    try sys.init_debug("PA9");
     show_logo();
 
-    const flash1: hal.flash.Flash_Dev = .{
-        .name = "flash1",
-        .start = 0x08000000,
-        .len = 0x100000,
-        .blocks = .{
-            .{ .size = 0x4000, .count = 4 },
-            .{ .size = 0x10000, .count = 1 },
-            .{ .size = 0x20000, .count = 7 },
-            .{ .size = 0x4000, .count = 4 },
-            .{ .size = 0x10000, .count = 1 },
-            .{ .size = 0x20000, .count = 7 },
-        },
-        .write_size = 8,
-        .ops = .{
-            .init = &flash_init,
-            .erase = &flash_earse,
-            .write = &flash_write,
-            .read = &flash_read,
-        },
-    };
+    const flash1 = hal.chip_flash.chip_flash;
+
     flash1.init();
     flash1.erase(0x08000000, 0x1000);
     flash1.write(0x08000000, "hello");
