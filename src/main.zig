@@ -5,6 +5,8 @@ const types = @import("regs/stm32f4.zig").types;
 const hal = @import("hal.zig");
 const sys = @import("sys.zig");
 
+const fal_partition = @import("fal/partition.zig");
+
 pub fn show_logo() void {
     sys.debug.print("\r\n", .{}) catch {};
     sys.debug.print("{s}\r\n", .{"  _____   __                __ "}) catch {};
@@ -28,12 +30,15 @@ pub fn jump_app() void {
     const jump2app: *const fn () void = @ptrFromInt(jump_addr);
 
     sys.debug.print("jump_addr:0x{x}\r\n", .{jump_addr}) catch {};
+
+    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
+    regs.RCC.CFGR.raw = 0x00000000;
     jump2app();
 }
 
 pub fn main() !void {
     hal.clock.clock_init();
-    try sys.init_debug("PA9");
+    sys.init_debug("PA9") catch {};
     show_logo();
 
     const flash1 = hal.chip_flash.chip_flash;
@@ -43,6 +48,35 @@ pub fn main() !void {
     flash1.write(0x08000000, "hello");
     var buf: [5]u8 = undefined;
     flash1.read(0x08000000, &buf);
+
+    sys.debug.print("magic_word:{x},name:{c}{c}{c}{c},flash:{c}{c}{c}{c},offset:{x},len:{x},reserved:{x}\r\n", .{
+        fal_partition.default_partition[0].magic_word,
+        fal_partition.default_partition[0].name1,
+        fal_partition.default_partition[0].name2,
+        fal_partition.default_partition[0].name3,
+        fal_partition.default_partition[0].name4,
+        fal_partition.default_partition[0].flash_name1,
+        fal_partition.default_partition[0].flash_name2,
+        fal_partition.default_partition[0].flash_name3,
+        fal_partition.default_partition[0].flash_name4,
+        fal_partition.default_partition[0].offset,
+        fal_partition.default_partition[0].len,
+        fal_partition.default_partition[0].reserved,
+    }) catch {};
+    sys.debug.print("magic_word:{x},name:{c}{c}{c}{c},flash:{c}{c}{c}{c},offset:{x},len:{x},reserved:{x}\r\n", .{
+        fal_partition.default_partition[1].magic_word,
+        fal_partition.default_partition[1].name1,
+        fal_partition.default_partition[1].name2,
+        fal_partition.default_partition[1].name3,
+        fal_partition.default_partition[1].name4,
+        fal_partition.default_partition[1].flash_name1,
+        fal_partition.default_partition[1].flash_name2,
+        fal_partition.default_partition[1].flash_name3,
+        fal_partition.default_partition[1].flash_name4,
+        fal_partition.default_partition[1].offset,
+        fal_partition.default_partition[1].len,
+        fal_partition.default_partition[1].reserved,
+    }) catch {};
 
     jump_app();
 }

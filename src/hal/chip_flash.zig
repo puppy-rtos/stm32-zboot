@@ -24,7 +24,7 @@ pub fn flash_read(self: *const Flash.Flash_Dev, addr: u32, data: []u8) void {
 }
 
 pub const chip_flash: Flash.Flash_Dev = .{
-    .name = "chip_flash",
+    .name = "onchip",
     .start = 0x08000000,
     .len = 0x100000,
     .blocks = .{
