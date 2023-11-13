@@ -42,24 +42,18 @@ pub fn main() !void {
     show_logo();
 
     const flash1 = hal.chip_flash.chip_flash;
-    _ = flash1;
+    flash1.init();
 
-    // flash1.init();
-    // flash1.erase(0x08000000, 0x1000);
-    // flash1.write(0x08000000, "hello");
-    // var buf: [5]u8 = undefined;
-    // flash1.read(0x08008000, &buf);
-
-    sys.debug.print("offset:{x},len:{x},reserved:{x}\r\n", .{
-        fal_partition.default_partition[0].offset,
-        fal_partition.default_partition[0].len,
-        fal_partition.default_partition[0].reserved,
-    }) catch {};
-    sys.debug.print("offset:{x},len:{x},reserved:{x}\r\n", .{
-        fal_partition.default_partition[1].offset,
-        fal_partition.default_partition[1].len,
-        fal_partition.default_partition[1].reserved,
-    }) catch {};
+    const part1 = fal_partition.partition_find("app");
+    if (part1) |part| {
+        sys.debug.print("find partition:{s}\r\n", .{part.name}) catch {};
+        fal_partition.partition_erase(part, 0, 100);
+        fal_partition.partition_write(part, 8, "hello");
+        var buf: [8]u8 = undefined;
+        fal_partition.partition_read(part, 0, &buf);
+    } else {
+        sys.debug.print("not find partition\r\n", .{}) catch {};
+    }
 
     jump_app();
 
