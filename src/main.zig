@@ -42,41 +42,26 @@ pub fn main() !void {
     show_logo();
 
     const flash1 = hal.chip_flash.chip_flash;
+    _ = flash1;
 
-    flash1.init();
-    flash1.erase(0x08000000, 0x1000);
-    flash1.write(0x08000000, "hello");
-    var buf: [5]u8 = undefined;
-    flash1.read(0x08000000, &buf);
+    // flash1.init();
+    // flash1.erase(0x08000000, 0x1000);
+    // flash1.write(0x08000000, "hello");
+    // var buf: [5]u8 = undefined;
+    // flash1.read(0x08008000, &buf);
 
-    sys.debug.print("magic_word:{x},name:{c}{c}{c}{c},flash:{c}{c}{c}{c},offset:{x},len:{x},reserved:{x}\r\n", .{
-        fal_partition.default_partition[0].magic_word,
-        fal_partition.default_partition[0].name1,
-        fal_partition.default_partition[0].name2,
-        fal_partition.default_partition[0].name3,
-        fal_partition.default_partition[0].name4,
-        fal_partition.default_partition[0].flash_name1,
-        fal_partition.default_partition[0].flash_name2,
-        fal_partition.default_partition[0].flash_name3,
-        fal_partition.default_partition[0].flash_name4,
+    sys.debug.print("offset:{x},len:{x},reserved:{x}\r\n", .{
         fal_partition.default_partition[0].offset,
         fal_partition.default_partition[0].len,
         fal_partition.default_partition[0].reserved,
     }) catch {};
-    sys.debug.print("magic_word:{x},name:{c}{c}{c}{c},flash:{c}{c}{c}{c},offset:{x},len:{x},reserved:{x}\r\n", .{
-        fal_partition.default_partition[1].magic_word,
-        fal_partition.default_partition[1].name1,
-        fal_partition.default_partition[1].name2,
-        fal_partition.default_partition[1].name3,
-        fal_partition.default_partition[1].name4,
-        fal_partition.default_partition[1].flash_name1,
-        fal_partition.default_partition[1].flash_name2,
-        fal_partition.default_partition[1].flash_name3,
-        fal_partition.default_partition[1].flash_name4,
+    sys.debug.print("offset:{x},len:{x},reserved:{x}\r\n", .{
         fal_partition.default_partition[1].offset,
         fal_partition.default_partition[1].len,
         fal_partition.default_partition[1].reserved,
     }) catch {};
 
     jump_app();
+
+    while (true) {}
 }
