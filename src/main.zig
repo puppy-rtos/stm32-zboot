@@ -44,13 +44,13 @@ pub fn main() !void {
     const flash1 = hal.chip_flash.chip_flash;
     flash1.init();
 
-    const part1 = fal_partition.partition_find("app");
+    const part1 = fal_partition.partition_find("swap");
     if (part1) |part| {
         sys.debug.print("find partition:{s}\r\n", .{part.name}) catch {};
-        fal_partition.partition_erase(part, 0, 100);
-        fal_partition.partition_write(part, 8, "hello");
-        var buf: [8]u8 = undefined;
-        fal_partition.partition_read(part, 0, &buf);
+        // fal_partition.partition_erase(part, 0, 100);
+        // fal_partition.partition_write(part, 8, "hello");
+        // var buf: [8]u8 = undefined;
+        // fal_partition.partition_read(part, 0, &buf);
     } else {
         sys.debug.print("not find partition\r\n", .{}) catch {};
     }

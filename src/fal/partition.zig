@@ -16,19 +16,26 @@ const Partition = extern struct {
     reserved: u32,
 };
 
-pub const default_partition: [2]Partition = .{ .{
+pub const default_partition: [3]Partition = .{ .{
     .magic_word = FAL_MAGIC_WORD,
     .name = .{ 'b', 'o', 'o', 't', 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
     .offset = 0x00000000,
-    .len = 0x00040000,
+    .len = 0x00008000,
     .reserved = 0,
 }, .{
     .magic_word = FAL_MAGIC_WORD,
     .name = .{ 'a', 'p', 'p', 0, 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
     .offset = 0x00008000,
-    .len = 0x00040000,
+    .len = 0x00058000,
+    .reserved = 0,
+}, .{
+    .magic_word = FAL_MAGIC_WORD,
+    .name = .{ 's', 'w', 'a', 'p', 0, 0, 0, 0 },
+    .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
+    .offset = 0x00080000,
+    .len = 0x00080000,
     .reserved = 0,
 } };
 
@@ -53,17 +60,17 @@ pub fn partition_find(name: []const u8) ?*const Partition {
 // partition erase
 pub fn partition_erase(partition: *const Partition, offset: u32, len: u32) void {
     const onchip = hal.chip_flash.chip_flash;
-    onchip.erase(partition.offset + offset, len);
+    onchip.erase(onchip.start + partition.offset + offset, len);
 }
 
 // partition write
 pub fn partition_write(partition: *const Partition, offset: u32, data: []const u8) void {
     const onchip = hal.chip_flash.chip_flash;
-    onchip.write(partition.offset + offset, data);
+    onchip.write(onchip.start + partition.offset + offset, data);
 }
 
 // partition read
 pub fn partition_read(partition: *const Partition, offset: u32, data: []u8) void {
     const onchip = hal.chip_flash.chip_flash;
-    onchip.read(partition.offset + offset, data);
+    onchip.read(onchip.start + partition.offset + offset, data);
 }
