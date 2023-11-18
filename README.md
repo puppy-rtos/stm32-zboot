@@ -1,5 +1,7 @@
 # stm32-zboot
-Universal stm32 boot written using zig
+Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootloader](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/application-note/system/rtboot/an0028-rtboot?id=%e7%ae%80%e4%bb%8b).
+
+## Roadmap
 
 ### M0: F4 series basic boot (rom < 8k)
 
@@ -22,7 +24,11 @@ Universal stm32 boot written using zig
 - [ ] Support differential upgrade
 - [ ] zboot Tool
 
+## How to build
 
+```
+zig build
+```
 
 
 

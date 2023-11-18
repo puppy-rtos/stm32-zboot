@@ -12,6 +12,12 @@ const available_examples = [_]Example{
     // TODO: .{ .name = "stm32f429idiscovery", .target = stm32.boards.stm32f429idiscovery, .file = "src/blinky.zig" },
 };
 
+fn root() []const u8 {
+    return comptime (std.fs.path.dirname(@src().file) orelse ".") ++ "/";
+}
+
+const linkerscript_path = root() ++ "linker.ld";
+
 pub fn build(b: *std.Build) void {
     const microzig = @import("microzig").init(b, "microzig");
     const optimize = .ReleaseSmall; // The others are not really an option on AVR
@@ -27,6 +33,7 @@ pub fn build(b: *std.Build) void {
             .target = example.target,
             .optimize = optimize,
             .source_file = .{ .path = example.file },
+            .linker_script = .{ .source_file = .{ .path = linkerscript_path } },
         });
 
         // `installFirmware()` is the MicroZig pendant to `Build.installArtifact()`
