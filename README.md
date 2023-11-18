@@ -6,8 +6,8 @@ Universal stm32 boot written using zig
  - [x] Serial port log output
  - [x] jump to app
  - [x] chip-flash manage
- - [ ] flash partition abstraction layer(Compatible with FAL)
- - [ ]  The whole package upgrade
+ - [x] flash partition abstraction layer(Compatible with FAL)
+ - [x]  The whole package upgrade
 
 ### M1: Normal boot (rom < 16k)
 

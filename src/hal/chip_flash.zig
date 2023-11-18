@@ -4,6 +4,8 @@ const regs = @import("../regs/stm32f4.zig").devices.stm32f4.peripherals;
 const sys = @import("../sys.zig");
 const microzig = @import("microzig");
 
+const Debug = false;
+
 const FLASH_KEYR_KEY1 = 0x45670123;
 const FLASH_KEYR_KEY2 = 0xcdef89ab;
 
@@ -71,10 +73,14 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) void {
         const is_ok = for (0..b.count) |i| {
             _ = i;
 
-            sys.debug.print("addr:{x}, cur_block:{x}\r\n", .{ addr, secter_cur }) catch {};
+            if (Debug) {
+                sys.debug.print("addr:{x}, cur_block:{x}\r\n", .{ addr, secter_cur }) catch {};
+            }
             if (is_find == false) {
                 if (addr >= addr_cur and addr < addr_cur + b.size) {
-                    sys.debug.print("finded first block:{x}\r\n", .{secter_cur}) catch {};
+                    if (Debug) {
+                        sys.debug.print("finded first block:{x}\r\n", .{secter_cur}) catch {};
+                    }
                     is_find = true;
                 } else {
                     addr_cur += b.size;
@@ -84,7 +90,9 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) void {
             }
 
             if (addr < addr_cur + b.size) {
-                sys.debug.print("chip erase secter_cur:{x}\r\n", .{secter_cur}) catch {};
+                if (Debug) {
+                    sys.debug.print("chip erase secter_cur:{x}\r\n", .{secter_cur}) catch {};
+                }
                 // Erase the block
                 flash_wait_for_last_operation();
                 regs.FLASH.CR.modify(.{ .SER = 1, .SNB = @as(u4, @intCast(secter_cur)) });

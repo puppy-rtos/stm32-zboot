@@ -6,6 +6,7 @@ const hal = @import("hal.zig");
 const sys = @import("sys.zig");
 
 const fal_partition = @import("fal/partition.zig");
+const ota = @import("ota/ota.zig");
 
 pub fn show_logo() void {
     sys.debug.print("\r\n", .{}) catch {};
@@ -29,7 +30,7 @@ pub fn jump_app() void {
     const jump_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR + 4)).*;
     const jump2app: *const fn () void = @ptrFromInt(jump_addr);
 
-    sys.debug.print("jump_addr:0x{x}\r\n", .{jump_addr}) catch {};
+    sys.debug.print("jump to app, addr:0x{x}\r\n", .{jump_addr}) catch {};
 
     microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
     regs.RCC.CFGR.raw = 0x00000000;
@@ -44,17 +45,8 @@ pub fn main() !void {
     const flash1 = hal.chip_flash.chip_flash;
     flash1.init();
 
-    const part1 = fal_partition.partition_find("swap");
-    if (part1) |part| {
-        sys.debug.print("find partition:{s}\r\n", .{part.name}) catch {};
-        // fal_partition.partition_erase(part, 0, 100);
-        // fal_partition.partition_write(part, 8, "hello");
-        // var buf: [8]u8 = undefined;
-        // fal_partition.partition_read(part, 0, &buf);
-    } else {
-        sys.debug.print("not find partition\r\n", .{}) catch {};
-    }
 
+    ota.swap();
     jump_app();
 
     while (true) {}

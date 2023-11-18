@@ -1,5 +1,7 @@
 const sys = @import("../sys.zig");
 
+const Debug: bool = false;
+
 pub const Flash_Dev = struct {
     name: []const u8,
     // flash device start address and len
@@ -40,39 +42,51 @@ pub const Flash_Dev = struct {
         self.ops.init(self);
     }
     pub fn erase(self: *const @This(), addr: u32, size: u32) void {
-        sys.debug.print("flash_earse:addr:0x{x},size:0x{x}\r\n", .{ addr, size }) catch {};
+        if (Debug) {
+            sys.debug.print("flash_earse:addr:0x{x},size:0x{x}\r\n", .{ addr, size }) catch {};
+        }
         self.ops.erase(self, addr, size);
     }
     pub fn write(self: *const @This(), addr: u32, data: []const u8) void {
-        sys.debug.print("flash_write:addr:0x{x}, data_ptr:0x{x}, size:{x} \r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
-        // dump data
-        for (data, 0..) |*d, i| {
-            if (i % 16 == 0) {
-                sys.debug.print("0x{x:0>8}:", .{addr + i}) catch {};
+        if (Debug) {
+            sys.debug.print("flash_write:addr:0x{x}, data_ptr:0x{x}, size:{x} \r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
+            // dump data
+            for (data, 0..) |*d, i| {
+                if (i % 16 == 0) {
+                    sys.debug.print("0x{x:0>8}:", .{addr + i}) catch {};
+                }
+                sys.debug.print(" {x:0>2}", .{d.*}) catch {};
+                if (i % 16 == 15) {
+                    sys.debug.print("\r\n", .{}) catch {};
+                }
             }
-            sys.debug.print(" {x:0>2}", .{d.*}) catch {};
-            if (i % 16 == 15) {
-                sys.debug.print("\r\n", .{}) catch {};
-            }
+            sys.debug.print("\r\n", .{}) catch {};
         }
-        sys.debug.print("\r\n", .{}) catch {};
         self.ops.write(self, addr, data);
     }
     pub fn read(self: *const @This(), addr: u32, data: []u8) void {
-        sys.debug.print("flash_read:addr:0x{x}, data_ptr:0x{x}, size:{x}\r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
-
+        if (Debug) {
+            sys.debug.print("flash_read:addr:0x{x}, data_ptr:0x{x}, size:{x}\r\n", .{ addr, @intFromPtr(data.ptr), data.len }) catch {};
+        }
         self.ops.read(self, addr, data);
 
         // dump data
-        for (data, 0..) |d, i| {
-            if (i % 16 == 0) {
-                sys.debug.print("0x{x:0>8}:", .{addr + i}) catch {};
+        if (Debug) {
+            for (data, 0..) |d, i| {
+                if (i % 16 == 0) {
+                    sys.debug.print("0x{x:0>8}:", .{addr + i}) catch {};
+                }
+                sys.debug.print(" {x:0>2}", .{d}) catch {};
+                if (i % 16 == 15) {
+                    sys.debug.print("\r\n", .{}) catch {};
+                }
             }
-            sys.debug.print(" {x:0>2}", .{d}) catch {};
-            if (i % 16 == 15) {
-                sys.debug.print("\r\n", .{}) catch {};
-            }
+            sys.debug.print("\r\n", .{}) catch {};
         }
-        sys.debug.print("\r\n", .{}) catch {};
+    }
+    // todo add iterator blocks
+    pub fn iterator_block(self: *const @This(), func: fn (self: *const Flash_Dev, addr: u32, size: u32) void) void {
+        _ = func;
+        _ = self;
     }
 };

@@ -49,10 +49,13 @@ comptime {
 }
 
 pub fn partition_find(name: []const u8) ?*const Partition {
-    for (default_partition) |partition| {
+    var i:u32 = 0;
+    while (i < default_partition.len) {
+        const partition = &default_partition[i];
         if (mem.eql(u8, name, partition.name[0..name.len])) {
-            return &partition;
+            return partition;
         }
+        i += 1;
     }
     return null;
 }
