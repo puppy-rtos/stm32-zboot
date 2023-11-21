@@ -30,5 +30,16 @@ Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootlo
 zig build
 ```
 
+## How to use zboot Tool
 
+### Build 
+
+```
+zig build-exe .\tools\zboot.zig -O ReleaseSmall
+```
+### Usage
+
+```
+.\zboot.exe .\zig-out\firmware\zboot-f4.bin
+```
 

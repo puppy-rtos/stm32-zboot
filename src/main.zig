@@ -36,6 +36,26 @@ pub fn jump_app() void {
     regs.RCC.CFGR.raw = 0x00000000;
     jump2app();
 }
+/// Contains references to the microzig .data and .bss sections, also
+/// contains the initial load address for .data if it is in flash.
+pub const sections = struct {
+    // it looks odd to just use a u8 here, but in C it's common to use a
+    // char when linking these values from the linkerscript. What's
+    // important is the addresses of these values.
+    extern var microzig_data_start: u8;
+    extern var microzig_data_end: u8;
+    extern var microzig_bss_start: u8;
+    extern var microzig_bss_end: u8;
+    extern const microzig_data_load_start: u8;
+};
+
+pub fn get_rom_end() usize {
+    const data_start: [*]u8 = @ptrCast(&sections.microzig_data_start);
+    const data_end: [*]u8 = @ptrCast(&sections.microzig_data_end);
+    const data_len = @intFromPtr(data_end) - @intFromPtr(data_start);
+    const data_src: u32 = @intFromPtr(&sections.microzig_data_load_start);
+    return data_src + data_len;
+}
 
 pub fn main() !void {
     hal.clock.clock_init();
@@ -45,6 +65,10 @@ pub fn main() !void {
     const flash1 = hal.chip_flash.chip_flash;
     flash1.init();
 
+    // fal_partition.partition_init(@intFromPtr(&fal_partition.default_partition));
+    fal_partition.partition_init(get_rom_end());
+
+    fal_partition.partition_print();
 
     ota.swap();
     jump_app();
