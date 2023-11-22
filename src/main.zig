@@ -68,21 +68,24 @@ pub fn main() !void {
     hal.clock.clock_init();
     const rom_end = get_rom_end();
     const uart_config: *UartConfig = @ptrFromInt(rom_end);
-    if (uart_config.enable) {
-        if (uart_config.tx[0] == 'P') {
+    if (uart_config.tx[0] == 'P') {
+        if (uart_config.enable) {
             sys.init_debug(uart_config.tx[0..]) catch {};
-        } else {
-            sys.init_debug("PA9") catch {};
         }
+    } else {
+        sys.init_debug("PA9") catch {};
     }
     show_logo();
 
     const flash1 = hal.chip_flash.chip_flash;
     flash1.init();
 
-    // fal_partition.partition_init(@intFromPtr(&fal_partition.default_partition));
     fal_partition.partition_init(rom_end);
-
+    if (fal_partition.partition_table.num == 0) {
+        sys.debug.print("partition table not find, use default partition\r\n", .{}) catch {};
+        // load default partition
+        fal_partition.partition_init(@intFromPtr(&fal_partition.default_partition));
+    }
     fal_partition.partition_print();
 
     ota.swap();

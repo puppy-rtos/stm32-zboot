@@ -23,7 +23,7 @@ const FalPartition = struct {
     num: u32,
     partition: [partition_table_MAX]Partition,
 };
-var partition_table: FalPartition = .{ .num = 0, .partition = undefined };
+pub var partition_table: FalPartition = .{ .num = 0, .partition = undefined };
 
 pub const default_partition: [3]Partition = .{ .{
     .magic_word = FAL_MAGIC_WORD,
