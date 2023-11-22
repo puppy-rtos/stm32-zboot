@@ -16,9 +16,9 @@ Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootlo
  - [ ] Support F1 series 
  - [ ] Firmware decompression
  - [ ] Support spi nor flash 
- - [ ] Basic zboot Tool
+ - [x] Basic zboot Tool
 
-### M3: More series boot (rom < 32k)
+### M2: More series boot (rom < 32k)
 
 - [ ] Support H7 series (XIP Flash)
 - [ ] Support differential upgrade
