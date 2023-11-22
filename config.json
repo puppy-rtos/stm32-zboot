@@ -1,30 +1,35 @@
     {
-        "num": 4,
-        "patition": [
-            {
-                "name": "boot",
-                "flash_name": "onchip",
-                "offset": 0,
-                "len": 32768
-            },
-            {
-                "name": "app",
-                "flash_name": "onchip",
-                "offset": 32768,
-                "len": 360448
-            },
-            {
-                "name": "fs",
-                "flash_name": "onchip",
-                "offset": 393216,
-                "len": 131072
-            },
-            {
-                "name": "swap",
-                "flash_name": "onchip",
-                "offset": 524288,
-                "len": 524288
-            }
-        ]
+        "uart": {
+            "enable": 1,
+            "tx": "PA9"
+        },
+        "partition_table": {
+            "num": 4,
+            "patition": [
+                {
+                    "name": "boot",
+                    "flash_name": "onchip",
+                    "offset": 0,
+                    "len": 32768
+                },
+                {
+                    "name": "app",
+                    "flash_name": "onchip",
+                    "offset": 32768,
+                    "len": 360448
+                },
+                {
+                    "name": "fs",
+                    "flash_name": "onchip",
+                    "offset": 393216,
+                    "len": 131072
+                },
+                {
+                    "name": "swap",
+                    "flash_name": "onchip",
+                    "offset": 524288,
+                    "len": 524288
+                }
+            ]
+        }
     }
-

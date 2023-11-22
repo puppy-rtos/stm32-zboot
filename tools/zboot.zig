@@ -25,6 +25,18 @@ const Partition = extern struct {
 
 pub var partition_num: u32 = 0;
 pub var default_partition: [partition_table_MAX]Partition = undefined;
+pub var default_uart: UartConfig = undefined;
+
+const PIN_NAME_MAX = 8;
+pub const UartConfig = extern struct {
+    enable: bool,
+    tx: [PIN_NAME_MAX]u8,
+};
+
+const JsonUart = struct {
+    enable: u32,
+    tx: []u8,
+};
 
 const JsonPartition = struct {
     name: []u8,
@@ -33,9 +45,14 @@ const JsonPartition = struct {
     len: u32,
 };
 
-const ConfigPartition = struct {
+const JsonPartitionTable = struct {
     num: u32,
     patition: []JsonPartition,
+};
+
+const JsonConfig = struct {
+    uart: JsonUart,
+    partition_table: JsonPartitionTable,
 };
 
 const BUF_SIZE = 1024;
@@ -107,6 +124,13 @@ pub fn main() !void {
     }
     // parse json file
     try json_parse();
+    // write uart data
+    var slice_uart = @as([*]u8, @ptrCast((&default_uart)))[0..(@sizeOf(UartConfig))];
+    const ret_uart = try out_stream.write(slice_uart);
+    if (ret_uart != slice_uart.len) {
+        std.debug.print("write file error: {d}\n", .{ret_uart});
+        return;
+    }
 
     // write partition data
     var slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Partition) * partition_num)];
@@ -133,35 +157,47 @@ pub fn json_parse() !void {
         // dump the file contents
         std.debug.print("config.json: {s}\n", .{buf[0..size]});
     }
-    const root = try std.json.parseFromSlice(ConfigPartition, allocator, buf[0..size], .{ .allocate = .alloc_always });
+    const root = try std.json.parseFromSlice(JsonConfig, allocator, buf[0..size], .{ .allocate = .alloc_always });
 
-    const configArray = root.value;
+    const json_config = root.value;
 
     if (Debug) {
-        std.debug.print("config.patition num: {d}\n", .{configArray.num});
+        std.debug.print("uart enable:{d}\n", .{json_config.uart.enable});
+        std.debug.print("uart tx:{s}\n", .{json_config.uart.tx});
+        std.debug.print("config.patition num: {d}\n", .{json_config.partition_table.num});
     }
-    partition_num = configArray.num;
+    if (json_config.uart.tx.len > PIN_NAME_MAX) {
+        std.debug.print("uart tx is too long\n", .{});
+        return;
+    }
+    if (json_config.uart.enable == 1) {
+        default_uart.enable = true;
+    } else {
+        default_uart.enable = false;
+    }
+    mem.copy(u8, &default_uart.tx, json_config.uart.tx[0..json_config.uart.tx.len]);
+    partition_num = json_config.partition_table.num;
     var i: u32 = 0;
-    while (i < configArray.num) : (i += 1) {
+    while (i < json_config.partition_table.num) : (i += 1) {
         if (Debug) {
-            std.debug.print("config.patition[{d}].name: {s}\n", .{ i, configArray.patition[i].name });
-            std.debug.print("config.patition[{d}].flash_name: {s}\n", .{ i, configArray.patition[i].flash_name });
-            std.debug.print("config.patition[{d}].offset: {d}\n", .{ i, configArray.patition[i].offset });
-            std.debug.print("config.patition[{d}].len: {d}\n", .{ i, configArray.patition[i].len });
+            std.debug.print("config.patition[{d}].name: {s}\n", .{ i, json_config.partition_table.patition[i].name });
+            std.debug.print("config.patition[{d}].flash_name: {s}\n", .{ i, json_config.partition_table.patition[i].flash_name });
+            std.debug.print("config.patition[{d}].offset: {d}\n", .{ i, json_config.partition_table.patition[i].offset });
+            std.debug.print("config.patition[{d}].len: {d}\n", .{ i, json_config.partition_table.patition[i].len });
         }
-        if (configArray.patition[i].flash_name.len > FAL_DEV_NAME_MAX) {
+        if (json_config.partition_table.patition[i].flash_name.len > FAL_DEV_NAME_MAX) {
             std.debug.print("flash_name is too long\n", .{});
             return;
         }
-        if (configArray.patition[i].name.len > FAL_DEV_NAME_MAX) {
+        if (json_config.partition_table.patition[i].name.len > FAL_DEV_NAME_MAX) {
             std.debug.print("name is too long\n", .{});
             return;
         }
         default_partition[i].magic_word = FAL_MAGIC_WORD;
-        mem.copy(u8, &default_partition[i].name, configArray.patition[i].name[0..configArray.patition[i].name.len]);
-        mem.copy(u8, &default_partition[i].flash_name, configArray.patition[i].flash_name[0..configArray.patition[i].flash_name.len]);
-        default_partition[i].offset = configArray.patition[i].offset;
-        default_partition[i].len = configArray.patition[i].len;
+        mem.copy(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
+        mem.copy(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
+        default_partition[i].offset = json_config.partition_table.patition[i].offset;
+        default_partition[i].len = json_config.partition_table.patition[i].len;
         default_partition[i].reserved = 0;
     }
 }

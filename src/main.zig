@@ -57,16 +57,31 @@ pub fn get_rom_end() usize {
     return data_src + data_len;
 }
 
+const PIN_NAME_MAX = 8;
+
+pub const UartConfig = extern struct {
+    enable: bool,
+    tx: [PIN_NAME_MAX]u8,
+};
+
 pub fn main() !void {
     hal.clock.clock_init();
-    sys.init_debug("PA9") catch {};
+    const rom_end = get_rom_end();
+    const uart_config: *UartConfig = @ptrFromInt(rom_end);
+    if (uart_config.enable) {
+        if (uart_config.tx[0] == 'P') {
+            sys.init_debug(uart_config.tx[0..]) catch {};
+        } else {
+            sys.init_debug("PA9") catch {};
+        }
+    }
     show_logo();
 
     const flash1 = hal.chip_flash.chip_flash;
     flash1.init();
 
     // fal_partition.partition_init(@intFromPtr(&fal_partition.default_partition));
-    fal_partition.partition_init(get_rom_end());
+    fal_partition.partition_init(rom_end);
 
     fal_partition.partition_print();
 
