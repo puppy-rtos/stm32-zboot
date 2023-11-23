@@ -131,6 +131,13 @@ pub fn flash_read(self: *const Flash.Flash_Dev, addr: u32, data: []u8) void {
     }
 }
 
+const ops: Flash.FlashOps = .{
+    .init = &flash_init,
+    .erase = &flash_earse,
+    .write = &flash_write,
+    .read = &flash_read,
+};
+
 pub const chip_flash: Flash.Flash_Dev = .{
     .name = "onchip",
     .start = 0x08000000,
@@ -144,10 +151,5 @@ pub const chip_flash: Flash.Flash_Dev = .{
         .{ .size = 0x20000, .count = 7 },
     },
     .write_size = 8,
-    .ops = .{
-        .init = &flash_init,
-        .erase = &flash_earse,
-        .write = &flash_write,
-        .read = &flash_read,
-    },
+    .ops = &ops,
 };

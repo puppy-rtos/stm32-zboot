@@ -2,6 +2,17 @@ const sys = @import("../sys.zig");
 
 const Debug: bool = false;
 
+pub const FlashOps = struct {
+    // init the flash
+    init: *const fn (self: *const Flash_Dev) void,
+    // erase the flash block
+    erase: *const fn (self: *const Flash_Dev, addr: u32, size: u32) void,
+    // write the flash
+    write: *const fn (self: *const Flash_Dev, addr: u32, data: []const u8) void,
+    // read the flash
+    read: *const fn (self: *const Flash_Dev, addr: u32, data: []u8) void,
+};
+
 pub const Flash_Dev = struct {
     name: []const u8,
     // flash device start address and len
@@ -19,16 +30,7 @@ pub const Flash_Dev = struct {
     //    0 will not take effect.
     write_size: u32,
     // ops for flash
-    ops: struct {
-        // init the flash
-        init: *const fn (self: *const Flash_Dev) void,
-        // erase the flash block
-        erase: *const fn (self: *const Flash_Dev, addr: u32, size: u32) void,
-        // write the flash
-        write: *const fn (self: *const Flash_Dev, addr: u32, data: []const u8) void,
-        // read the flash
-        read: *const fn (self: *const Flash_Dev, addr: u32, data: []u8) void,
-    },
+    ops: *const FlashOps,
     pub fn init(self: *const @This()) void {
         sys.debug.print("Flash[{s}]:init..\r\n", .{self.name}) catch {};
         var offset: u32 = 0;

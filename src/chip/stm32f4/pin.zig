@@ -49,17 +49,19 @@ fn read(self: *const PinType) Pin_Level {
     }
 }
 
+const ops: hal.pin.PinOps = .{
+    .mode = &set_mode,
+    .write = &write,
+    .read = &read,
+};
+
 pub fn init(name: []const u8) !PinType {
     // parse name
     var port_num = name[1] - 'A';
     var port_addr: u32 = 0x40020000 + 0x400 * @as(u32, port_num);
     var pin_num: u32 = try parseU32(name[2..]);
 
-    var self: PinType = .{ .data = .{ .port = @as(*volatile types.GPIOA, @ptrFromInt(port_addr)), .pin = @intCast(pin_num) }, .ops = .{
-        .mode = &set_mode,
-        .write = &write,
-        .read = &read,
-    } };
+    var self: PinType = .{ .data = .{ .port = @as(*volatile types.GPIOA, @ptrFromInt(port_addr)), .pin = @intCast(pin_num) }, .ops = &ops };
 
     // Enable GPIOX(A..) port
     var ahb1enr_raw = regs.RCC.AHB1ENR.raw;
