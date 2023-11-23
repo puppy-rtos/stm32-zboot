@@ -1,4 +1,4 @@
-const hal = @import("hal.zig");
+const hal = @import("../hal/hal.zig");
 
 pub var debug: hal.uart.UartDebug().Writer = undefined;
 

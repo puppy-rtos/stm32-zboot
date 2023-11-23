@@ -90,3 +90,10 @@ pub const Flash_Dev = struct {
         _ = self;
     }
 };
+
+//  flash find
+pub fn find(name: []const u8) *const Flash_Dev {
+    _ = name;
+
+    return &@import("../../hal/hal.zig").flash;
+}

@@ -1,8 +1,8 @@
-const hal = @import("../hal.zig");
-const Flash = @import("../fal/flash.zig");
-const regs = @import("../regs/stm32f4.zig").devices.stm32f4.peripherals;
-const sys = @import("../sys.zig");
 const microzig = @import("microzig");
+const regs = @import("../chip.zig").regs;
+
+const Flash = @import("../../platform/fal/flash.zig");
+const sys = @import("../../platform/sys.zig");
 
 const Debug = false;
 

@@ -1,52 +1,35 @@
 const std = @import("std");
-const regs = @import("../regs/stm32f4.zig").devices.stm32f4.peripherals;
-const types = @import("../regs/stm32f4.zig").types;
 
-pub const Pin = struct {
-    port: *volatile types.peripherals.GPIOA,
-    pin: u8,
+const chip_pin = @import("../chip/chip.zig").pin;
 
-    pub fn init(name: []const u8) !@This() {
-        // parse name
-        var port_num = name[1] - 'A';
-        var port_addr: u32 = 0x40020000 + 0x400 * @as(u32, port_num);
-        var pin_num: u32 = try parseU32(name[2..]);
+pub const Pin_Mode = enum { Input, Output };
+pub const Pin_Level = enum { Low, High };
 
-        var self: Pin = Pin{ .port = @as(*volatile types.peripherals.GPIOA, @ptrFromInt(port_addr)), .pin = @intCast(pin_num) };
-
-        // Enable GPIOX(A..) port
-        var ahb1enr_raw = regs.RCC.AHB1ENR.raw;
-        ahb1enr_raw = ahb1enr_raw | std.math.shl(u32, 1, port_num);
-        regs.RCC.AHB1ENR.raw = ahb1enr_raw;
-        // Enable PinX to output
-        var moder_raw: u32 = self.port.MODER.raw;
-        // todo: optimize
-        moder_raw = moder_raw & ~std.math.shl(u32, 0b11, self.pin * 2);
-        moder_raw = moder_raw | std.math.shl(u32, 0b01, self.pin * 2);
-        self.port.MODER.raw = moder_raw;
-
-        return self;
+pub const PinType = struct {
+    data: chip_pin.ChipPinData,
+    // ops for pin
+    ops: struct {
+        // init the flash
+        mode: *const fn (self: *const PinType, pin_mode: Pin_Mode) void,
+        // write the flash
+        write: *const fn (self: *const PinType, value: Pin_Level) void,
+        // read the flash
+        read: *const fn (self: *const PinType) Pin_Level,
+    },
+    // set pin mode
+    pub fn mode(self: *const @This(), pin_mode: Pin_Mode) void {
+        self.ops.mode(self, pin_mode);
     }
-
-    pub fn set(self: *const @This()) void {
-        const pin_set = std.math.shl(u32, 1, self.pin);
-        self.port.ODR.raw = self.port.ODR.raw | pin_set;
+    // write pin
+    pub fn write(self: *const @This(), value: Pin_Level) void {
+        self.ops.write(self, value);
     }
-
-    pub fn clear(self: *const @This()) void {
-        const pin_set = std.math.shl(u32, 1, self.pin);
-        self.port.ODR.raw = self.port.ODR.raw & ~pin_set;
+    // read pin
+    pub fn read(self: *const @This()) Pin_Level {
+        return self.ops.read(self);
     }
 };
 
-fn parseU32(input: []const u8) !u32 {
-    var tmp: u32 = 0;
-    for (input) |c| {
-        if (c == 0) {
-            break;
-        }
-        const digit = try std.fmt.charToDigit(c, 10);
-        tmp = tmp * 10 + @as(u32, digit);
-    }
-    return tmp;
+pub fn Pin(name: []const u8) !PinType {
+    return chip_pin.init(name);
 }

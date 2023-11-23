@@ -1,6 +1,5 @@
 const sys = @import("../sys.zig");
-const fal_partition = @import("../fal/partition.zig");
-const hal = @import("../hal.zig");
+const fal = @import("../fal/fal.zig");
 
 const mem = @import("std").mem;
 
@@ -73,8 +72,8 @@ fn strlen(str: []const u8) u32 {
 
 // ota swap: move swap to target partition
 pub fn swap() void {
-    const flash1 = hal.chip_flash.chip_flash;
-    const part1 = fal_partition.partition_find("swap");
+    const flash1 = fal.flash.find("onchip");
+    const part1 = fal.partition.find("swap");
     if (part1) |part| {
         sys.debug.print("find partition:{s}\r\n", .{part.name}) catch {};
         const ota_fw_info = @as(*const volatile Ota_FW_Info, @ptrFromInt(flash1.start + part.offset));
@@ -84,10 +83,10 @@ pub fn swap() void {
             sys.debug.print("magic not match, don't need swap\r\n", .{}) catch {};
             return;
         }
-        const part2 = fal_partition.partition_find(@volatileCast(ota_fw_info.name[0..strlen(@volatileCast(ota_fw_info.name[0..]))]));
+        const part2 = fal.partition.find(@volatileCast(ota_fw_info.name[0..strlen(@volatileCast(ota_fw_info.name[0..]))]));
         if (part2) |part_target| {
             sys.debug.print("swap [{s}] to version:{s}\r\n", .{ ota_fw_info.name, ota_fw_info.version }) catch {};
-            fal_partition.partition_erase(part_target, 0, ota_fw_info.raw_size);
+            fal.partition.erase(part_target, 0, ota_fw_info.raw_size);
             // copy data
             var buf: [1024]u8 = undefined;
             var offset: u32 = 0;
@@ -96,17 +95,17 @@ pub fn swap() void {
 
                 sys.debug.print("=", .{}) catch {};
                 if (read_size > 1024) {
-                    fal_partition.partition_read(part, offset + @sizeOf(Ota_FW_Info), &buf);
-                    fal_partition.partition_write(part_target, offset, &buf);
+                    fal.partition.read(part, offset + @sizeOf(Ota_FW_Info), &buf);
+                    fal.partition.write(part_target, offset, &buf);
                 } else {
                     var tmp_bug: [1024]u8 = undefined;
-                    fal_partition.partition_read(part, offset, &tmp_bug);
-                    fal_partition.partition_write(part_target, offset, &tmp_bug);
+                    fal.partition.read(part, offset, &tmp_bug);
+                    fal.partition.write(part_target, offset, &tmp_bug);
                 }
             }
             sys.debug.print("\r\nswap success, start clean swap parttion\r\n", .{}) catch {};
             // cleanup swap
-            fal_partition.partition_erase(part, 0, ota_fw_info.pkg_size);
+            fal.partition.erase(part, 0, ota_fw_info.pkg_size);
         } else {
             sys.debug.print("not find partition{s}\r\n", .{ota_fw_info.name}) catch {};
         }

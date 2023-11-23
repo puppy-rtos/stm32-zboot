@@ -1,6 +1,7 @@
-const hal = @import("../hal.zig");
 const mem = @import("std").mem;
 const sys = @import("../sys.zig");
+const hal = @import("../../hal/hal.zig");
+const fal = @import("fal.zig");
 
 const FAL_MAGIC_WORD = 0x45503130;
 const FAL_MAGIC_WORD_L = 0x3130;
@@ -57,7 +58,7 @@ comptime {
     @export(default_partition, export_opts);
 }
 
-pub fn partition_find(name: []const u8) ?*const Partition {
+pub fn find(name: []const u8) ?*const Partition {
     var i: u32 = 0;
     while (i < partition_table.num) : (i += 1) {
         const partition = &partition_table.partition[i];
@@ -70,8 +71,8 @@ pub fn partition_find(name: []const u8) ?*const Partition {
 
 // partition init
 // find onchip flash, init partition_table
-pub fn partition_init(start_offset: u32) void {
-    const onchip = hal.chip_flash.chip_flash;
+pub fn init(start_offset: u32) void {
+    const onchip = fal.flash.find("onchip");
 
     // find magic word
     var magic_word: u32 = 0;
@@ -91,7 +92,7 @@ pub fn partition_init(start_offset: u32) void {
     while (part_is_find) {
         var part_new = @as([*]u8, @ptrCast(&partition_table.partition[partition_table.num]))[0..(@sizeOf(Partition))];
 
-        hal.chip_flash.chip_flash.read(partition_start, part_new);
+        onchip.read(partition_start, part_new);
         // check magic word
         if (partition_table.partition[partition_table.num].magic_word != FAL_MAGIC_WORD) {
             break;
@@ -101,7 +102,7 @@ pub fn partition_init(start_offset: u32) void {
     }
 }
 // print the partition table
-pub fn partition_print() void {
+pub fn print() void {
     var i: u32 = 0;
     while (i < partition_table.num) {
         const partition = &partition_table.partition[i];
@@ -111,19 +112,19 @@ pub fn partition_print() void {
 }
 
 // partition erase
-pub fn partition_erase(partition: *const Partition, offset: u32, len: u32) void {
-    const onchip = hal.chip_flash.chip_flash;
+pub fn erase(partition: *const Partition, offset: u32, len: u32) void {
+    const onchip = fal.flash.find("onchip");
     onchip.erase(onchip.start + partition.offset + offset, len);
 }
 
 // partition write
-pub fn partition_write(partition: *const Partition, offset: u32, data: []const u8) void {
-    const onchip = hal.chip_flash.chip_flash;
+pub fn write(partition: *const Partition, offset: u32, data: []const u8) void {
+    const onchip = fal.flash.find("onchip");
     onchip.write(onchip.start + partition.offset + offset, data);
 }
 
 // partition read
-pub fn partition_read(partition: *const Partition, offset: u32, data: []u8) void {
-    const onchip = hal.chip_flash.chip_flash;
+pub fn read(partition: *const Partition, offset: u32, data: []u8) void {
+    const onchip = fal.flash.find("onchip");
     onchip.read(onchip.start + partition.offset + offset, data);
 }

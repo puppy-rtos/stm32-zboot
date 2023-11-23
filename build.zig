@@ -16,7 +16,7 @@ fn root() []const u8 {
     return comptime (std.fs.path.dirname(@src().file) orelse ".") ++ "/";
 }
 
-const linkerscript_path = root() ++ "linker.ld";
+const linkscript_path = root() ++ "src/chip/" ++ @import("src/chip/chip.zig").linkscript;
 
 pub fn build(b: *std.Build) void {
     const microzig = @import("microzig").init(b, "microzig");
@@ -33,7 +33,7 @@ pub fn build(b: *std.Build) void {
             .target = example.target,
             .optimize = optimize,
             .source_file = .{ .path = example.file },
-            .linker_script = .{ .source_file = .{ .path = linkerscript_path } },
+            .linker_script = .{ .source_file = .{ .path = linkscript_path } },
         });
 
         // `installFirmware()` is the MicroZig pendant to `Build.installArtifact()`

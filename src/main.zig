@@ -1,12 +1,11 @@
 const std = @import("std");
 const microzig = @import("microzig");
-const regs = @import("regs/stm32f4.zig").devices.stm32f4.peripherals;
-const types = @import("regs/stm32f4.zig").types;
-const hal = @import("hal.zig");
-const sys = @import("sys.zig");
 
-const fal_partition = @import("fal/partition.zig");
-const ota = @import("ota/ota.zig");
+const hal = @import("hal/hal.zig");
+
+const sys = @import("platform/sys.zig");
+const fal = @import("platform/fal/fal.zig");
+const ota = @import("platform/ota/ota.zig");
 
 pub fn show_logo() void {
     sys.debug.print("\r\n", .{}) catch {};
@@ -32,8 +31,7 @@ pub fn jump_app() void {
 
     sys.debug.print("jump to app, addr:0x{x}\r\n", .{jump_addr}) catch {};
 
-    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
-    regs.RCC.CFGR.raw = 0x00000000;
+    hal.clock.clock_deinit();
     jump2app();
 }
 /// Contains references to the microzig .data and .bss sections, also
@@ -77,16 +75,16 @@ pub fn main() !void {
     }
     show_logo();
 
-    const flash1 = hal.chip_flash.chip_flash;
+    const flash1 = fal.flash.find("onchip");
     flash1.init();
 
-    fal_partition.partition_init(rom_end);
-    if (fal_partition.partition_table.num == 0) {
+    fal.partition.init(rom_end);
+    if (fal.partition.partition_table.num == 0) {
         sys.debug.print("partition table not find, use default partition\r\n", .{}) catch {};
         // load default partition
-        fal_partition.partition_init(@intFromPtr(&fal_partition.default_partition));
+        fal.partition.init(@intFromPtr(&fal.partition.default_partition));
     }
-    fal_partition.partition_print();
+    fal.partition.print();
 
     ota.swap();
     jump_app();

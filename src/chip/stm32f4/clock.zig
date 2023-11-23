@@ -1,6 +1,5 @@
 const std = @import("std");
-const regs = @import("../regs/stm32f4.zig").devices.stm32f4.peripherals;
-const types = @import("../regs/stm32f4.zig").types;
+const regs = @import("../chip.zig").regs;
 const microzig = @import("microzig");
 
 var sysfreq: u32 = 0;
@@ -46,6 +45,12 @@ pub fn clock_init() void {
     // init systick
     microzig.cpu.peripherals.SysTick.LOAD.raw = 0xFFFFFF;
     microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 1, .CLKSOURCE = 1 });
+}
+
+pub fn clock_deinit() void {
+    // Reset clock
+    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
+    regs.RCC.CFGR.raw = 0x00000000;
 }
 
 const HSI_VALUE = 16000000; // 16MHz
