@@ -86,6 +86,13 @@ pub fn main() !void {
     }
     fal.partition.print();
 
+    const spi1 = try hal.spi.Spi("PC3", "PC2", "PB13", "PB12");
+    const wr_buf: [4]u8 = .{ 0x9f, 0xff, 0xff, 0xff };
+    var rd_buf: [4]u8 = undefined;
+    const ret = spi1.wr(wr_buf[0..], &rd_buf);
+    _ = ret;
+    sys.debug.print("spi flash id: 0x{x}\r\n", .{rd_buf[1]}) catch {};
+
     ota.swap();
     jump_app();
 

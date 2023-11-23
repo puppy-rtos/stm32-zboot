@@ -22,6 +22,10 @@ fn set_mode(self: *const PinType, pin_mode: Pin_Mode) void {
         moder_raw = moder_raw & ~std.math.shl(u32, 0b11, pin * 2);
         moder_raw = moder_raw | std.math.shl(u32, 0b01, pin * 2);
         port.MODER.raw = moder_raw;
+    } else if (pin_mode == Pin_Mode.Input) {
+        var moder_raw: u32 = port.MODER.raw;
+        moder_raw = moder_raw & ~std.math.shl(u32, 0b11, pin * 2);
+        port.MODER.raw = moder_raw;
     }
 }
 
