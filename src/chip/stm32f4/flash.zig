@@ -57,11 +57,12 @@ pub fn flash_program_byte(address: u32, data: u8) void {
     regs.FLASH.CR.modify(.{ .PG = 0 });
 }
 
-pub fn flash_init(self: *const Flash.Flash_Dev) void {
+pub fn flash_init(self: *const Flash.Flash_Dev) Flash.FlashErr {
     _ = self;
+    return Flash.FlashErr.Ok;
 }
 
-pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) void {
+pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.FlashErr {
     flash_unlock();
     flash_clear_status_flags();
     // Iterate the flash block, calculate which block addr and size belongs to, and then erase it
@@ -103,6 +104,9 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) void {
             if (addr_cur + b.size > addr + size) {
                 break true;
             }
+
+            addr_cur += b.size;
+            secter_cur += 1;
         } else false;
         if (is_ok) {
             break;
@@ -110,8 +114,9 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) void {
     }
 
     flash_lock();
+    return Flash.FlashErr.Ok;
 }
-pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) void {
+pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Flash.FlashErr {
     _ = self;
     flash_unlock();
     flash_clear_status_flags();
@@ -121,14 +126,16 @@ pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) vo
     }
 
     flash_lock();
+    return Flash.FlashErr.Ok;
 }
-pub fn flash_read(self: *const Flash.Flash_Dev, addr: u32, data: []u8) void {
+pub fn flash_read(self: *const Flash.Flash_Dev, addr: u32, data: []u8) Flash.FlashErr {
     _ = self;
 
     // read data from onchip flash
     for (data, 0..) |*d, i| {
         d.* = @as(*u8, @ptrFromInt(addr + i)).*;
     }
+    return Flash.FlashErr.Ok;
 }
 
 const ops: Flash.FlashOps = .{

@@ -3,6 +3,13 @@
             "enable": 1,
             "tx": "PA9"
         },
+        "spiflash": {
+            "enable": 1,
+            "cs": "PB12",
+            "sck": "PB13",
+            "mosi": "PC3",
+            "miso": "PC2"
+        },
         "partition_table": {
             "num": 4,
             "patition": [
@@ -26,8 +33,8 @@
                 },
                 {
                     "name": "swap",
-                    "flash_name": "onchip",
-                    "offset": 524288,
+                    "flash_name": "spiflash",
+                    "offset": 0,
                     "len": 524288
                 }
             ]

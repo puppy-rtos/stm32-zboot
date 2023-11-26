@@ -7,6 +7,32 @@ const json = std.json;
 
 const Debug = false;
 
+pub const PIN_NAME_MAX = 8;
+
+pub const UartConfig = extern struct {
+    enable: bool,
+    tx: [PIN_NAME_MAX]u8,
+};
+
+// spi flash config
+pub const SpiFlashConfig = extern struct {
+    enable: bool,
+    cs: [PIN_NAME_MAX]u8,
+    sck: [PIN_NAME_MAX]u8,
+    mosi: [PIN_NAME_MAX]u8,
+    miso: [PIN_NAME_MAX]u8,
+};
+
+// magic num
+const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
+
+pub const ZbootConfig = extern struct {
+    // magic num
+    magic: u32,
+    uart: UartConfig,
+    spiflash: SpiFlashConfig,
+};
+
 const FAL_MAGIC_WORD = 0x45503130;
 const FAL_MAGIC_WORD_L = 0x3130;
 const FAL_MAGIC_WORD_H = 0x4550;
@@ -25,17 +51,19 @@ const Partition = extern struct {
 
 pub var partition_num: u32 = 0;
 pub var default_partition: [partition_table_MAX]Partition = undefined;
-pub var default_uart: UartConfig = undefined;
-
-const PIN_NAME_MAX = 8;
-pub const UartConfig = extern struct {
-    enable: bool,
-    tx: [PIN_NAME_MAX]u8,
-};
+pub var default_zconfig: ZbootConfig = undefined;
 
 const JsonUart = struct {
     enable: u32,
     tx: []u8,
+};
+
+const JsonSpiFlash = struct {
+    enable: u32,
+    cs: []u8,
+    sck: []u8,
+    mosi: []u8,
+    miso: []u8,
 };
 
 const JsonPartition = struct {
@@ -52,6 +80,7 @@ const JsonPartitionTable = struct {
 
 const JsonConfig = struct {
     uart: JsonUart,
+    spiflash: JsonSpiFlash,
     partition_table: JsonPartitionTable,
 };
 
@@ -124,10 +153,11 @@ pub fn main() !void {
     }
     // parse json file
     try json_parse();
-    // write uart data
-    var slice_uart = @as([*]u8, @ptrCast((&default_uart)))[0..(@sizeOf(UartConfig))];
-    const ret_uart = try out_stream.write(slice_uart);
-    if (ret_uart != slice_uart.len) {
+    // write zbootconfig data
+    default_zconfig.magic = ZBOOT_CONFIG_MAGIC;
+    var slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZbootConfig))];
+    const ret_uart = try out_stream.write(slice_config);
+    if (ret_uart != slice_config.len) {
         std.debug.print("write file error: {d}\n", .{ret_uart});
         return;
     }
@@ -161,21 +191,41 @@ pub fn json_parse() !void {
 
     const json_config = root.value;
 
+    // parse uart config
     if (Debug) {
         std.debug.print("uart enable:{d}\n", .{json_config.uart.enable});
         std.debug.print("uart tx:{s}\n", .{json_config.uart.tx});
-        std.debug.print("config.patition num: {d}\n", .{json_config.partition_table.num});
     }
     if (json_config.uart.tx.len > PIN_NAME_MAX) {
         std.debug.print("uart tx is too long\n", .{});
         return;
     }
     if (json_config.uart.enable == 1) {
-        default_uart.enable = true;
+        default_zconfig.uart.enable = true;
     } else {
-        default_uart.enable = false;
+        default_zconfig.uart.enable = false;
     }
-    mem.copy(u8, &default_uart.tx, json_config.uart.tx[0..json_config.uart.tx.len]);
+    mem.copy(u8, &default_zconfig.uart.tx, json_config.uart.tx[0..json_config.uart.tx.len]);
+
+    // parse spiflash config
+    if (Debug) {
+        std.debug.print("spi enable:{d}\n", .{json_config.spiflash.enable});
+        std.debug.print("spi cs:{s}\n", .{json_config.spiflash.cs});
+        std.debug.print("spi sck:{s}\n", .{json_config.spiflash.sck});
+        std.debug.print("spi mosi:{s}\n", .{json_config.spiflash.mosi});
+        std.debug.print("spi miso:{s}\n", .{json_config.spiflash.miso});
+    }
+    if (json_config.spiflash.enable == 1) {
+        default_zconfig.spiflash.enable = true;
+    } else {
+        default_zconfig.spiflash.enable = false;
+    }
+    mem.copy(u8, &default_zconfig.spiflash.cs, json_config.spiflash.cs[0..json_config.spiflash.cs.len]);
+    mem.copy(u8, &default_zconfig.spiflash.sck, json_config.spiflash.sck[0..json_config.spiflash.sck.len]);
+    mem.copy(u8, &default_zconfig.spiflash.mosi, json_config.spiflash.mosi[0..json_config.spiflash.mosi.len]);
+    mem.copy(u8, &default_zconfig.spiflash.miso, json_config.spiflash.miso[0..json_config.spiflash.miso.len]);
+
+    // parse fal partition config
     partition_num = json_config.partition_table.num;
     var i: u32 = 0;
     while (i < json_config.partition_table.num) : (i += 1) {

@@ -5,6 +5,7 @@ const hal = @import("hal/hal.zig");
 
 const sys = @import("platform/sys.zig");
 const fal = @import("platform/fal/fal.zig");
+const sfud = @import("platform/sfud/sfud.zig");
 const ota = @import("platform/ota/ota.zig");
 
 pub fn show_logo() void {
@@ -55,43 +56,27 @@ pub fn get_rom_end() usize {
     return data_src + data_len;
 }
 
-const PIN_NAME_MAX = 8;
-
-pub const UartConfig = extern struct {
-    enable: bool,
-    tx: [PIN_NAME_MAX]u8,
-};
-
 pub fn main() !void {
     hal.clock.clock_init();
-    const rom_end = get_rom_end();
-    const uart_config: *UartConfig = @ptrFromInt(rom_end);
-    if (uart_config.tx[0] == 'P') {
-        if (uart_config.enable) {
-            sys.init_debug(uart_config.tx[0..]) catch {};
-        }
-    } else {
-        sys.init_debug("PA9") catch {};
+    sys.zconfig.probe_extconfig(get_rom_end());
+    const zboot_config = sys.zconfig.get_config();
+    if (zboot_config.uart.enable) {
+        sys.init_debug(zboot_config.uart.tx[0..]) catch {};
+        show_logo();
     }
-    show_logo();
+    if (zboot_config.spiflash.enable) {
+        const spi = try hal.spi.Spi(zboot_config.spiflash.mosi[0..], zboot_config.spiflash.miso[0..], zboot_config.spiflash.sck[0..], zboot_config.spiflash.cs[0..]);
+        const spiflash = sfud.flash.probe("spiflash", spi);
+        _ = spiflash;
+    }
 
-    const flash1 = fal.flash.find("onchip");
-    flash1.init();
-
-    fal.partition.init(rom_end);
+    fal.partition.init(get_rom_end());
     if (fal.partition.partition_table.num == 0) {
         sys.debug.print("partition table not find, use default partition\r\n", .{}) catch {};
         // load default partition
         fal.partition.init(@intFromPtr(&fal.partition.default_partition));
     }
     fal.partition.print();
-
-    const spi1 = try hal.spi.Spi("PC3", "PC2", "PB13", "PB12");
-    const wr_buf: [4]u8 = .{ 0x9f, 0xff, 0xff, 0xff };
-    var rd_buf: [4]u8 = undefined;
-    const ret = spi1.wr(wr_buf[0..], &rd_buf);
-    _ = ret;
-    sys.debug.print("spi flash id: 0x{x}\r\n", .{rd_buf[1]}) catch {};
 
     ota.swap();
     jump_app();

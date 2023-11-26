@@ -50,19 +50,14 @@ pub fn wr(self: *const SpiType, write_buf: ?[]const u8, read_buf: ?[]u8) bool {
     // start transfer
     self.cs.write(hal.pin.Pin_Level.Low);
 
-    // write and read
-    if (write_buf != null and read_buf != null) {
-        const write_pos = write_buf.?;
-        const read_pos = read_buf.?;
-        for (write_pos, 0..) |byte, i| {
-            read_pos[i] = wr_byte(self, byte);
-        }
-    } else if (write_buf != null) {
+    // write then read
+    if (write_buf != null) {
         const write_pos = write_buf.?;
         for (write_pos) |byte| {
             _ = wr_byte(self, byte);
         }
-    } else if (read_buf != null) {
+    }
+    if (read_buf != null) {
         const read_pos = read_buf.?;
         var i: usize = 0;
         while (i < read_pos.len) : (i += 1) {

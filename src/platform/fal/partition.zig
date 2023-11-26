@@ -11,7 +11,7 @@ const partition_table_MAX = 8;
 const FAL_PATITION_SIZE_MAX = @sizeOf(Partition) * partition_table_MAX;
 const FAL_DEV_NAME_MAX = 8;
 
-const Partition = extern struct {
+pub const Partition = extern struct {
     magic_word: u32,
     name: [FAL_DEV_NAME_MAX]u8,
     flash_name: [FAL_DEV_NAME_MAX]u8,
@@ -70,9 +70,9 @@ pub fn find(name: []const u8) ?*const Partition {
 }
 
 // partition init
-// find onchip flash, init partition_table
+// find flash flash, init partition_table
 pub fn init(start_offset: u32) void {
-    const onchip = fal.flash.find("onchip");
+    const flash = fal.flash.find("onchip").?;
 
     // find magic word
     var magic_word: u32 = 0;
@@ -80,7 +80,7 @@ pub fn init(start_offset: u32) void {
     var partition_start: u32 = start_offset;
     var part_is_find: bool = false;
     while (partition_start < start_offset + FAL_PATITION_SIZE_MAX) : (partition_start += 1) {
-        onchip.read(partition_start, slice);
+        _ = flash.read(partition_start, slice);
         if (magic_word == FAL_MAGIC_WORD) {
             part_is_find = true;
             sys.debug.print("partition table find at 0x{x}\r\n", .{partition_start}) catch {};
@@ -92,11 +92,17 @@ pub fn init(start_offset: u32) void {
     while (part_is_find) {
         var part_new = @as([*]u8, @ptrCast(&partition_table.partition[partition_table.num]))[0..(@sizeOf(Partition))];
 
-        onchip.read(partition_start, part_new);
+        _ = flash.read(partition_start, part_new);
         // check magic word
         if (partition_table.partition[partition_table.num].magic_word != FAL_MAGIC_WORD) {
             break;
         }
+        // check partition flash
+        const new_flash = fal.flash.find(partition_table.partition[partition_table.num].flash_name[0..]);
+        if (new_flash == null) {
+            sys.debug.print("flash {s} not find\r\n", .{partition_table.partition[partition_table.num].flash_name}) catch {};
+        }
+
         partition_table.num += 1;
         partition_start += @sizeOf(Partition);
     }
@@ -113,18 +119,18 @@ pub fn print() void {
 
 // partition erase
 pub fn erase(partition: *const Partition, offset: u32, len: u32) void {
-    const onchip = fal.flash.find("onchip");
-    onchip.erase(onchip.start + partition.offset + offset, len);
+    const flash = fal.flash.find(partition.flash_name[0..]).?;
+    _ = flash.erase(flash.start + partition.offset + offset, len);
 }
 
 // partition write
 pub fn write(partition: *const Partition, offset: u32, data: []const u8) void {
-    const onchip = fal.flash.find("onchip");
-    onchip.write(onchip.start + partition.offset + offset, data);
+    const flash = fal.flash.find(partition.flash_name[0..]).?;
+    _ = flash.write(flash.start + partition.offset + offset, data);
 }
 
 // partition read
 pub fn read(partition: *const Partition, offset: u32, data: []u8) void {
-    const onchip = fal.flash.find("onchip");
-    onchip.read(onchip.start + partition.offset + offset, data);
+    const flash = fal.flash.find(partition.flash_name[0..]).?;
+    _ = flash.read(flash.start + partition.offset + offset, data);
 }

@@ -1,4 +1,5 @@
 const hal = @import("../hal/hal.zig");
+pub const zconfig = @import("sys/config.zig");
 
 pub var debug: hal.uart.UartDebug().Writer = undefined;
 
