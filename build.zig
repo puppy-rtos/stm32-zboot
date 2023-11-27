@@ -2,21 +2,9 @@ const std = @import("std");
 const chips = @import("src/chip/chip.zig").chips;
 
 const available_examples = [_]Example{
-    // .{ .name = "stm32f103x8", .target = stm32.chips.stm32f103x8, .file = "src/blinky.zig" },
-    // TODO: .{ .name = "stm32f303vc", .target = stm32.chips.stm32f303vc, .file = "src/blinky.zig" },
     .{ .name = "zboot-f4", .target = chips.stm32f4, .file = "src/main.zig" },
-    // TODO: .{ .name = "stm32f429zit6u", .target = stm32.chips.stm32f429zit6u, .file = "src/blinky.zig" },
-    // TODO: .{ .name = "stm32f3discovery", .target = stm32.boards.stm32f3discovery, .file = "src/blinky.zig" },
-    // TODO: .{ .name = "stm32f4discovery", .target = stm32.boards.stm32f4discovery, .file = "src/blinky.zig" },
-    // TODO: .{ .name = "stm3240geval", .target = stm32.boards.stm3240geval, .file = "src/blinky.zig" },
-    // TODO: .{ .name = "stm32f429idiscovery", .target = stm32.boards.stm32f429idiscovery, .file = "src/blinky.zig" },
+    .{ .name = "zboot-l4", .target = chips.stm32l4, .file = "src/main.zig" },
 };
-
-fn root() []const u8 {
-    return comptime (std.fs.path.dirname(@src().file) orelse ".") ++ "/";
-}
-
-const linkscript_path = root() ++ "src/chip/" ++ @import("src/chip/chip.zig").linkscript;
 
 pub fn build(b: *std.Build) void {
     const microzig = @import("microzig").init(b, "microzig");
@@ -47,6 +35,12 @@ pub fn build(b: *std.Build) void {
 
         microzig.installFirmware(b, firmware, .{ .format = .bin });
     }
+}
+
+const linkscript_path = root() ++ "src/chip/" ++ @import("src/chip/chip.zig").linkscript;
+
+fn root() []const u8 {
+    return comptime (std.fs.path.dirname(@src().file) orelse ".") ++ "/";
 }
 
 const Example = struct {
