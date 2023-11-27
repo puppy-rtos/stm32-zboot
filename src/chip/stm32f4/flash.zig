@@ -1,5 +1,5 @@
 const microzig = @import("microzig");
-const regs = @import("../chip.zig").regs;
+const regs = microzig.chip.peripherals;
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");

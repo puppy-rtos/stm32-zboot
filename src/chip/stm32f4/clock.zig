@@ -1,6 +1,6 @@
 const std = @import("std");
-const regs = @import("../chip.zig").regs;
 const microzig = @import("microzig");
+const regs = microzig.chip.peripherals;
 
 var sysfreq: u32 = 0;
 

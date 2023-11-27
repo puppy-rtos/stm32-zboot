@@ -37,7 +37,6 @@ pub fn check_sfdp_header(flash: *const SfudFlash) bool {
             sys.debug.print("SFDP header error\r\n", .{}) catch {};
             return false;
         }
-        sys.debug.print("Check SFDP header is OK. The reversion is V{d}.{d}, NPN is {d}.\r\n", .{ header.major_rev, header.minor_rev, header.nph }) catch {};
     }
     return true;
 }
@@ -70,7 +69,6 @@ pub fn get_basic_para(flash: *SfudFlash) bool {
     } else {
         flash.capacity = std.math.shl(u32, 1, table.DWORD2.flash_density - 3);
     }
-    sys.debug.print("Flash density is {d} Mbit.\r\n", .{flash.capacity / 1024 / 1024 * 8}) catch {};
 
     // dump erase granularity
     if (table.DWORD8.erase1_gran != 0x0C) {

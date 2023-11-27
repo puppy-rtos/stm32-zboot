@@ -1,10 +1,10 @@
 const std = @import("std");
-const stm32 = @import("stm32");
+const chips = @import("src/chip/chip.zig").chips;
 
 const available_examples = [_]Example{
     // .{ .name = "stm32f103x8", .target = stm32.chips.stm32f103x8, .file = "src/blinky.zig" },
     // TODO: .{ .name = "stm32f303vc", .target = stm32.chips.stm32f303vc, .file = "src/blinky.zig" },
-    .{ .name = "zboot-f4", .target = stm32.chips.stm32f407vg, .file = "src/main.zig" },
+    .{ .name = "zboot-f4", .target = chips.stm32f4, .file = "src/main.zig" },
     // TODO: .{ .name = "stm32f429zit6u", .target = stm32.chips.stm32f429zit6u, .file = "src/blinky.zig" },
     // TODO: .{ .name = "stm32f3discovery", .target = stm32.boards.stm32f3discovery, .file = "src/blinky.zig" },
     // TODO: .{ .name = "stm32f4discovery", .target = stm32.boards.stm32f4discovery, .file = "src/blinky.zig" },

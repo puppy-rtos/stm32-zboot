@@ -5,8 +5,9 @@ const PinType = hal.pin.PinType;
 const Pin_Mode = hal.pin.Pin_Mode;
 const Pin_Level = hal.pin.Pin_Level;
 
-const regs = @import("../chip.zig").regs;
-const types = @import("../chip.zig").RegsTypes;
+const microzig = @import("microzig");
+const regs = microzig.chip.peripherals;
+const types = microzig.chip.types.peripherals;
 
 pub const ChipPinData = struct {
     port: *volatile types.GPIOA,
