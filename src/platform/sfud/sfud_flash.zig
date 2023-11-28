@@ -280,5 +280,6 @@ pub fn probe(name: []const u8, spi: hal.spi.SpiType) ?*const Flash.Flash_Dev {
     spi_flash.len = sfud_flash.capacity;
     spi_flash.blocks[0].size = sfud_flash.erase_gran;
     spi_flash.blocks[0].count = sfud_flash.capacity / sfud_flash.erase_gran;
+    sys.debug.print("SFUD Flash probe success. Capacity: {d}Mbit\r\n", .{sfud_flash.capacity / 1024 / 1024}) catch {};
     return &spi_flash;
 }

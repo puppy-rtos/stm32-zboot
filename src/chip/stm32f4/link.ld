@@ -9,9 +9,8 @@ ENTRY(microzig_main);
 
 MEMORY
 {
-  flash0    (rx!w) : ORIGIN = 0x08000000, LENGTH = 0x00100000
-  ram0      (rw!x) : ORIGIN = 0x20000000, LENGTH = 0x00020000
-  ram1      (rw!x) : ORIGIN = 0x10000000, LENGTH = 0x00010000
+  flash0    (rx!w) : ORIGIN = 0x08000000, LENGTH = 0x0020000
+  ram0      (rw!x) : ORIGIN = 0x20000000, LENGTH = 0x00010000
 }
 
 SECTIONS

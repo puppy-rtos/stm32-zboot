@@ -2,8 +2,10 @@ const std = @import("std");
 const chips = @import("src/chip/chip.zig").chips;
 
 const available_examples = [_]Example{
-    .{ .name = "zboot-f4", .target = chips.stm32f4, .file = "src/main.zig" },
-    .{ .name = "zboot-l4", .target = chips.stm32l4, .file = "src/main.zig" },
+    .{ .name = "zboot-f4", .target = chips.stm32f4, .file = "src/main.zig", .linker_script = "src/chip/stm32f4/link.ld" },
+    .{ .name = "zboot-f4-app", .target = chips.stm32f4, .file = "src/app_main.zig", .linker_script = "src/chip/stm32f4/link_app.ld" },
+    .{ .name = "zboot-l4", .target = chips.stm32l4, .file = "src/main.zig", .linker_script = "src/chip/stm32f4/link.ld" },
+    .{ .name = "zboot-l4-app", .target = chips.stm32l4, .file = "src/app_main.zig", .linker_script = "src/chip/stm32f4/link_app.ld" },
 };
 
 pub fn build(b: *std.Build) void {
@@ -21,7 +23,7 @@ pub fn build(b: *std.Build) void {
             .target = example.target,
             .optimize = optimize,
             .source_file = .{ .path = example.file },
-            .linker_script = .{ .source_file = .{ .path = linkscript_path } },
+            .linker_script = .{ .source_file = .{ .path = example.linker_script } },
         });
 
         // `installFirmware()` is the MicroZig pendant to `Build.installArtifact()`
@@ -37,14 +39,9 @@ pub fn build(b: *std.Build) void {
     }
 }
 
-const linkscript_path = root() ++ "src/chip/" ++ @import("src/chip/chip.zig").linkscript;
-
-fn root() []const u8 {
-    return comptime (std.fs.path.dirname(@src().file) orelse ".") ++ "/";
-}
-
 const Example = struct {
     target: @import("microzig").Target,
     name: []const u8,
     file: []const u8,
+    linker_script: []const u8,
 };

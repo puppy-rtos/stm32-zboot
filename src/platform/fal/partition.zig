@@ -38,14 +38,14 @@ pub const default_partition: [3]Partition = .{ .{
     .name = .{ 'a', 'p', 'p', 0, 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
     .offset = 0x00008000,
-    .len = 0x00058000,
+    .len = 0x00048000,
     .reserved = 0,
 }, .{
     .magic_word = FAL_MAGIC_WORD,
     .name = .{ 's', 'w', 'a', 'p', 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
-    .offset = 0x00080000,
-    .len = 0x00080000,
+    .offset = 0x00050000,
+    .len = 0x00030000,
     .reserved = 0,
 } };
 

@@ -67,7 +67,10 @@ pub fn main() !void {
     if (zboot_config.spiflash.enable) {
         const spi = try hal.spi.Spi(zboot_config.spiflash.mosi[0..], zboot_config.spiflash.miso[0..], zboot_config.spiflash.sck[0..], zboot_config.spiflash.cs[0..]);
         const spiflash = sfud.flash.probe("spiflash", spi);
-        _ = spiflash;
+        // dump spiflash info
+        if (spiflash) |flash| {
+            _ = flash.init();
+        }
     }
 
     fal.partition.init(get_rom_end());

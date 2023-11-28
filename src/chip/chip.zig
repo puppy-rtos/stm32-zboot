@@ -21,8 +21,6 @@ else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32l4"))
 else
     struct {};
 
-pub const linkscript = "stm32f4/link.ld";
-
 const build_root = root();
 const KiB = 1024;
 
@@ -33,8 +31,8 @@ pub const chips = struct {
             .name = "stm32f4",
             .cpu = .cortex_m4,
             .memory_regions = &.{
-                .{ .offset = 0x08000000, .length = 1024 * KiB, .kind = .flash },
-                .{ .offset = 0x20000000, .length = 128 * KiB, .kind = .ram },
+                .{ .offset = 0x08000000, .length = 128 * KiB, .kind = .flash },
+                .{ .offset = 0x20000000, .length = 16 * KiB, .kind = .ram },
             },
             .register_definition = .{
                 .zig = .{ .cwd_relative = build_root ++ "stm32f4/regs.zig" },
@@ -47,8 +45,8 @@ pub const chips = struct {
             .name = "stm32l4",
             .cpu = .cortex_m4,
             .memory_regions = &.{
-                .{ .offset = 0x08000000, .length = 1024 * KiB, .kind = .flash },
-                .{ .offset = 0x20000000, .length = 128 * KiB, .kind = .ram },
+                .{ .offset = 0x08000000, .length = 128 * KiB, .kind = .flash },
+                .{ .offset = 0x20000000, .length = 16 * KiB, .kind = .ram },
             },
             .register_definition = .{
                 .zig = .{ .cwd_relative = build_root ++ "stm32l4/regs.zig" },

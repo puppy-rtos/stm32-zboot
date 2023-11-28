@@ -27,7 +27,14 @@ pub fn clock_init() void {
     }
 
     // Use HSI as system clock
-    regs.RCC.ICSCR.modify(.{ .HSITRIM = 64 }); // l496 need 64
+    // 0x10XX 00XX where X is factory-programmed (for STM32L47x/L48x devices).
+    // 0x40XX 00XX where X is factory-programmed (for STM32L49x/L4Ax devices)
+    // The default value is 16 for STM32L47x/L48x devices and 64 for STM32L49x/L4Ax devices;
+    if (regs.RCC.ICSCR.read().HSITRIM == 0x40) {
+        regs.RCC.ICSCR.modify(.{ .HSITRIM = 64 }); // for STM32L49x/L4Ax
+    } else {
+        regs.RCC.ICSCR.modify(.{ .HSITRIM = 16 }); // for STM32L47x/L48x
+    }
     regs.RCC.CFGR.modify(.{ .SW = RCC_CFGR_SW_HSI });
 
     // Disable PLL
