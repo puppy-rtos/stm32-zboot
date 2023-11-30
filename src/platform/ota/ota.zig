@@ -137,6 +137,4 @@ pub fn swap() void {
     fal.partition.write(part_target, part_target.len - @sizeOf(Ota_FW_Info), slice_info[0..]);
 
     sys.debug.print("\r\nswap success, start clean swap parttion\r\n", .{}) catch {};
-    // cleanup swap
-    fal.partition.erase(part, 0, ota_fw_info.pkg_size);
 }

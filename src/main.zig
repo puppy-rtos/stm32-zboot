@@ -28,13 +28,13 @@ pub fn jump_app() void {
     const app_stack_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR)).*;
     // Check stack address
     if (app_stack_addr < APP_RAM_ADDR or app_stack_addr > APP_RAM_ADDR + APP_RAM_SIZE) {
-        sys.debug.print("Invalid stack address: 0x{x}\r\n", .{app_stack_addr}) catch {};
+        sys.debug.print("Can't find app @0x{x}\r\n", .{APP_ENTRY_ADDR}) catch {};
         return;
     }
     const jump_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR + 4)).*;
     const jump2app: *const fn () void = @ptrFromInt(jump_addr);
 
-    sys.debug.print("jump to app, addr:0x{x}\r\n", .{jump_addr}) catch {};
+    sys.debug.print("jump to app, offset:0x{x}, addr:0x{x}\r\n", .{ APP_ENTRY_ADDR, jump_addr }) catch {};
 
     hal.clock.clock_deinit();
     jump2app();

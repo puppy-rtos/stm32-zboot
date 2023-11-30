@@ -113,3 +113,24 @@ pub fn read(partition: *const Partition, offset: u32, data: []u8) void {
     const flash = fal.flash.find(partition.flash_name[0..]).?;
     _ = flash.read(flash.start + partition.offset + offset, data);
 }
+
+pub fn test_flash() void {
+    const flash = fal.partition.find("app").?;
+    var data: [1024]u8 = undefined;
+    var data_read: [1024]u8 = undefined;
+    var i: u32 = 0;
+    while (i < 1024) : (i += 1) {
+        data[i] = @intCast(i);
+    }
+    fal.partition.erase(flash, 0, 1024);
+    fal.partition.write(flash, 0, data[0..]);
+    fal.partition.read(flash, 0, data_read[0..]);
+    i = 0;
+    while (i < 1024) : (i += 1) {
+        if (data[i] != data_read[i]) {
+            sys.debug.print("fal test fail\r\n", .{}) catch {};
+            return;
+        }
+    }
+    sys.debug.print("fal test success\r\n", .{}) catch {};
+}

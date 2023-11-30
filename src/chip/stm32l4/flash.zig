@@ -109,13 +109,21 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.Fla
                 if (Debug) {
                     sys.debug.print("chip erase bank:{d},secter_cur:{x}\r\n", .{ bank, pgn }) catch {};
                 }
-                regs.FLASH.CR.modify(.{ .PNB = @as(u8, @intCast(pgn)) });
-                regs.FLASH.CR.modify(.{ .PER = 1 });
+                regs.FLASH.CR.modify(.{ .PER = 1, .PNB = @as(u8, @intCast(pgn)) });
                 regs.FLASH.CR.modify(.{ .START = 1 });
                 flash_wait_for_last_operation();
                 regs.FLASH.CR.modify(.{ .PER = 0, .PNB = 0 });
+                if (Debug) {
+                    for (addr_cur..addr_cur + b.size) |check_d| {
+                        const d = @as(*u8, @ptrFromInt(check_d)).*;
+                        if (d != 0xFF) {
+                            sys.debug.print("erase failed, data check error\r\n", .{}) catch {};
+                            break;
+                        }
+                    }
+                }
             }
-            if (addr_cur + b.size > addr + size) {
+            if (addr_cur + b.size >= addr + size) {
                 break true;
             }
 
@@ -143,6 +151,7 @@ pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Fl
 
         const addr64: *const volatile u64 = @ptrFromInt(addr + i);
         if (addr64.* != data64) {
+            sys.debug.print("write failed, data check error!\r\n", .{}) catch {};
             ret = Flash.FlashErr.ErrWrite;
             break;
         }

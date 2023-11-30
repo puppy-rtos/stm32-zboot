@@ -101,7 +101,7 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.Fla
                 flash_wait_for_last_operation();
                 regs.FLASH.CR.modify(.{ .SER = 0, .SNB = 0 });
             }
-            if (addr_cur + b.size > addr + size) {
+            if (addr_cur + b.size >= addr + size) {
                 break true;
             }
 
