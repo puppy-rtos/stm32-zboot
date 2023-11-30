@@ -1,4 +1,10 @@
 pub const PIN_NAME_MAX = 8;
+// magic num
+pub const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
+
+pub const ChipFlashConfig = extern struct {
+    size: u32,
+};
 
 pub const UartConfig = extern struct {
     enable: bool,
@@ -14,31 +20,15 @@ pub const SpiFlashConfig = extern struct {
     miso: [PIN_NAME_MAX]u8,
 };
 
-// magic num
-const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
-
 pub const ZbootConfig = extern struct {
     // magic num
     magic: u32,
+    chipflash: ChipFlashConfig,
     uart: UartConfig,
     spiflash: SpiFlashConfig,
 };
 
-// default config
-var zboot_config = ZbootConfig{
-    .magic = ZBOOT_CONFIG_MAGIC,
-    .uart = UartConfig{
-        .enable = true,
-        .tx = .{ 'P', 'A', '9', 0, 0, 0, 0, 0 },
-    },
-    .spiflash = SpiFlashConfig{
-        .enable = true,
-        .cs = .{ 'P', 'B', '1', '2', 0, 0, 0, 0 },
-        .sck = .{ 'P', 'B', '1', '3', 0, 0, 0, 0 },
-        .mosi = .{ 'P', 'C', '3', 0, 0, 0, 0, 0 },
-        .miso = .{ 'P', 'C', '2', 0, 0, 0, 0, 0 },
-    },
-};
+const dconfig = @import("../../default_config.zig");
 
 // probe config from rom end
 pub fn probe_extconfig(addr: u32) void {
@@ -47,10 +37,10 @@ pub fn probe_extconfig(addr: u32) void {
         return;
     }
     // copy config
-    zboot_config = extconfig.*;
+    dconfig.default_config = extconfig.*;
 }
 
 // get config
 pub fn get_config() *ZbootConfig {
-    return &zboot_config;
+    return &dconfig.default_config;
 }

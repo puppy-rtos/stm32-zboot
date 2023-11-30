@@ -1,4 +1,7 @@
     {
+        "chipflash":{
+            "size": 1048576
+        },
         "uart": {
             "enable": 1,
             "tx": "PA9"

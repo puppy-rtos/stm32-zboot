@@ -3,13 +3,13 @@ const sys = @import("../sys.zig");
 const hal = @import("../../hal/hal.zig");
 const fal = @import("fal.zig");
 
-const FAL_MAGIC_WORD = 0x45503130;
+pub const FAL_MAGIC_WORD = 0x45503130;
 const FAL_MAGIC_WORD_L = 0x3130;
 const FAL_MAGIC_WORD_H = 0x4550;
 
-const partition_table_MAX = 8;
+pub const partition_table_MAX = 8;
 const FAL_PATITION_SIZE_MAX = @sizeOf(Partition) * partition_table_MAX;
-const FAL_DEV_NAME_MAX = 8;
+pub const FAL_DEV_NAME_MAX = 8;
 
 pub const Partition = extern struct {
     magic_word: u32,
@@ -26,28 +26,7 @@ const FalPartition = struct {
 };
 pub var partition_table: FalPartition = .{ .num = 0, .partition = undefined };
 
-pub const default_partition: [3]Partition = .{ .{
-    .magic_word = FAL_MAGIC_WORD,
-    .name = .{ 'b', 'o', 'o', 't', 0, 0, 0, 0 },
-    .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
-    .offset = 0x00000000,
-    .len = 0x00008000,
-    .reserved = 0,
-}, .{
-    .magic_word = FAL_MAGIC_WORD,
-    .name = .{ 'a', 'p', 'p', 0, 0, 0, 0, 0 },
-    .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
-    .offset = 0x00008000,
-    .len = 0x00048000,
-    .reserved = 0,
-}, .{
-    .magic_word = FAL_MAGIC_WORD,
-    .name = .{ 's', 'w', 'a', 'p', 0, 0, 0, 0 },
-    .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
-    .offset = 0x00050000,
-    .len = 0x00030000,
-    .reserved = 0,
-} };
+const dconfig = @import("../../default_config.zig");
 
 comptime {
     const export_opts = .{
@@ -55,7 +34,7 @@ comptime {
         .section = "fal",
         .linkage = .Strong,
     };
-    @export(default_partition, export_opts);
+    @export(dconfig.default_partition, export_opts);
 }
 
 pub fn find(name: []const u8) ?*const Partition {

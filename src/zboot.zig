@@ -7,51 +7,15 @@ const json = std.json;
 
 const Debug = false;
 
-pub const PIN_NAME_MAX = 8;
-
-pub const UartConfig = extern struct {
-    enable: bool,
-    tx: [PIN_NAME_MAX]u8,
-};
-
-// spi flash config
-pub const SpiFlashConfig = extern struct {
-    enable: bool,
-    cs: [PIN_NAME_MAX]u8,
-    sck: [PIN_NAME_MAX]u8,
-    mosi: [PIN_NAME_MAX]u8,
-    miso: [PIN_NAME_MAX]u8,
-};
-
-// magic num
-const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
-
-pub const ZbootConfig = extern struct {
-    // magic num
-    magic: u32,
-    uart: UartConfig,
-    spiflash: SpiFlashConfig,
-};
-
-const FAL_MAGIC_WORD = 0x45503130;
-const FAL_MAGIC_WORD_L = 0x3130;
-const FAL_MAGIC_WORD_H = 0x4550;
-
-const FAL_DEV_NAME_MAX = 8;
-const partition_table_MAX = 8;
-
-const Partition = extern struct {
-    magic_word: u32,
-    name: [FAL_DEV_NAME_MAX]u8,
-    flash_name: [FAL_DEV_NAME_MAX]u8,
-    offset: u32,
-    len: u32,
-    reserved: u32,
-};
+const ZC = @import("platform/sys.zig").zconfig;
+const Part = @import("platform/fal/fal.zig").partition;
 
 pub var partition_num: u32 = 0;
-pub var default_partition: [partition_table_MAX]Partition = undefined;
-pub var default_zconfig: ZbootConfig = undefined;
+pub var default_partition: [Part.partition_table_MAX]Part.Partition = undefined;
+pub var default_zconfig: ZC.ZbootConfig = undefined;
+const JsonChipFlash = struct {
+    size: u32,
+};
 
 const JsonUart = struct {
     enable: u32,
@@ -79,6 +43,7 @@ const JsonPartitionTable = struct {
 };
 
 const JsonConfig = struct {
+    chipflash: JsonChipFlash,
     uart: JsonUart,
     spiflash: JsonSpiFlash,
     partition_table: JsonPartitionTable,
@@ -154,8 +119,8 @@ pub fn main() !void {
     // parse json file
     try json_parse();
     // write zbootconfig data
-    default_zconfig.magic = ZBOOT_CONFIG_MAGIC;
-    var slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZbootConfig))];
+    default_zconfig.magic = ZC.ZBOOT_CONFIG_MAGIC;
+    var slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
     const ret_uart = try out_stream.write(slice_config);
     if (ret_uart != slice_config.len) {
         std.debug.print("write file error: {d}\n", .{ret_uart});
@@ -163,7 +128,7 @@ pub fn main() !void {
     }
 
     // write partition data
-    var slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Partition) * partition_num)];
+    var slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Part.Partition) * partition_num)];
 
     const ret = try out_stream.write(slice);
     if (ret != slice.len) {
@@ -190,13 +155,18 @@ pub fn json_parse() !void {
     const root = try std.json.parseFromSlice(JsonConfig, allocator, buf[0..size], .{ .allocate = .alloc_always });
 
     const json_config = root.value;
+    // parse chipflash config
+    if (Debug) {
+        std.debug.print("chipflash size:{d}\n", .{json_config.chipflash.size});
+    }
+    default_zconfig.chipflash.size = json_config.chipflash.size;
 
     // parse uart config
     if (Debug) {
         std.debug.print("uart enable:{d}\n", .{json_config.uart.enable});
         std.debug.print("uart tx:{s}\n", .{json_config.uart.tx});
     }
-    if (json_config.uart.tx.len > PIN_NAME_MAX) {
+    if (json_config.uart.tx.len > ZC.PIN_NAME_MAX) {
         std.debug.print("uart tx is too long\n", .{});
         return;
     }
@@ -235,15 +205,15 @@ pub fn json_parse() !void {
             std.debug.print("config.patition[{d}].offset: {d}\n", .{ i, json_config.partition_table.patition[i].offset });
             std.debug.print("config.patition[{d}].len: {d}\n", .{ i, json_config.partition_table.patition[i].len });
         }
-        if (json_config.partition_table.patition[i].flash_name.len > FAL_DEV_NAME_MAX) {
+        if (json_config.partition_table.patition[i].flash_name.len > Part.FAL_DEV_NAME_MAX) {
             std.debug.print("flash_name is too long\n", .{});
             return;
         }
-        if (json_config.partition_table.patition[i].name.len > FAL_DEV_NAME_MAX) {
+        if (json_config.partition_table.patition[i].name.len > Part.FAL_DEV_NAME_MAX) {
             std.debug.print("name is too long\n", .{});
             return;
         }
-        default_partition[i].magic_word = FAL_MAGIC_WORD;
+        default_partition[i].magic_word = Part.FAL_MAGIC_WORD;
         mem.copy(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
         mem.copy(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
         default_partition[i].offset = json_config.partition_table.patition[i].offset;

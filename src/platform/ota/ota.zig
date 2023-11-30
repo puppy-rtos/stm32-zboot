@@ -104,16 +104,17 @@ pub fn swap() void {
     const ret2 = get_fw_info(part_target, true);
     if (ret2 == null) {
         sys.debug.print("not find ota_fw_info in target partition\r\n", .{}) catch {};
-        return;
-    }
-    const ota_fw_info_target = ret2.?;
-    // if new version is same as old version, don't swap
-    if (mem.eql(u8, ota_fw_info_target.version[0..], ota_fw_info.version[0..])) {
-        sys.debug.print("version is same, don't need swap\r\n", .{}) catch {};
-        return;
-    }
+        sys.debug.print("swap [{s}] {s} => {s}\r\n", .{ ota_fw_info.name, "unkown", ota_fw_info.version }) catch {};
+    } else {
+        const ota_fw_info_target = ret2.?;
+        // if new version is same as old version, don't swap
+        if (mem.eql(u8, ota_fw_info_target.version[0..], ota_fw_info.version[0..])) {
+            sys.debug.print("version is same, don't need swap\r\n", .{}) catch {};
+            return;
+        }
 
-    sys.debug.print("swap [{s}] {s} => {s}\r\n", .{ ota_fw_info.name, ota_fw_info_target.version, ota_fw_info.version }) catch {};
+        sys.debug.print("swap [{s}] {s} => {s}\r\n", .{ ota_fw_info.name, ota_fw_info_target.version, ota_fw_info.version }) catch {};
+    }
     fal.partition.erase(part_target, 0, part_target.len);
     // copy data
     var buf: [1024]u8 = undefined;

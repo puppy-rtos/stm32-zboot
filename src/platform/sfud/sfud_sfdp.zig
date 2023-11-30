@@ -34,7 +34,7 @@ pub fn check_sfdp_header(flash: *const SfudFlash) bool {
     if (read_sfdp_data(flash, 0, slice_header[0..])) {
         // check SFDP header
         if (header.signature != sfdp_signature) {
-            sys.debug.print("SFDP header error\r\n", .{}) catch {};
+            // sys.debug.print("SFDP header error\r\n", .{}) catch {};
             return false;
         }
     }

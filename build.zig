@@ -37,6 +37,14 @@ pub fn build(b: *std.Build) void {
 
         microzig.installFirmware(b, firmware, .{ .format = .bin });
     }
+    const zboot_tool = b.addExecutable(.{
+        .name = "zboot",
+        .optimize = .ReleaseSmall,
+        .target = .{},
+        .root_source_file = .{ .path = "src/zboot.zig" },
+    });
+
+    b.installArtifact(zboot_tool);
 }
 
 const Example = struct {

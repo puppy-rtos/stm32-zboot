@@ -11,11 +11,11 @@ Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootlo
  - [x] jump to app
  - [x] chip-flash manage
  - [x] flash partition abstraction layer(Compatible with FAL)
- - [x]  The whole package upgrade
+ - [x] The whole package upgrade
 
 ### M1: Normal boot (rom < 16k)
 
- - [ ] Support F1 series 
+ - [x] Support L4 series 
  - [ ] Firmware decompression
  - [x] Support spi nor flash 
  - [x] Basic zboot Tool
@@ -34,14 +34,9 @@ zig build
 
 ## How to use zboot Tool
 
-### Build 
-
-```
-zig build-exe .\tools\zboot.zig -O ReleaseSmall
-```
 ### Usage
 
 ```
-.\zboot.exe .\zig-out\firmware\zboot-f4.bin
+.\zig-out\bin\zboot.exe .\zig-out\firmware\zboot-f4.bin
 ```
 

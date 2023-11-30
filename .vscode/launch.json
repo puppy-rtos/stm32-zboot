@@ -24,7 +24,7 @@
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "Reset_handler",
-            "targetId": "STM32L496VGTx",
+            "targetId": "STM32L475VETx",
             "cmsisPack": "D:/RT-ThreadStudio/repo/Extract/Debugger_Support_Packages/RealThread/PyOCD/0.2.0/packs/Keil.STM32L4xx_DFP.2.3.0-small.pack",
             "servertype": "pyocd",
             "armToolchainPath": "D:/Progrem/env-windows/tools/gnu_gcc/arm_gcc/mingw/bin",

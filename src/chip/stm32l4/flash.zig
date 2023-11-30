@@ -52,8 +52,12 @@ pub fn flash_program_64(address: u32, data: u64) void {
     regs.FLASH.CR.modify(.{ .PG = 0 });
 }
 
+var SECTER_PER_BANK: u32 = 1024 * 1024 / 2 / 2048; // l496 1M flash, l475 512K flash
 pub fn flash_init(self: *const Flash.Flash_Dev) Flash.FlashErr {
-    _ = self;
+    SECTER_PER_BANK = sys.zconfig.get_config().chipflash.size / self.blocks[0].size / 2;
+    if (Debug) {
+        sys.debug.print("chipflash size:0x{x}, SecterPerBank:0x{x}\r\n", .{ sys.zconfig.get_config().chipflash.size, SECTER_PER_BANK }) catch {};
+    }
     return Flash.FlashErr.Ok;
 }
 
@@ -70,7 +74,7 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.Fla
             _ = i;
 
             if (Debug) {
-                sys.debug.print("addr:{x}, cur_block:{x}\r\n", .{ addr, secter_cur }) catch {};
+                sys.debug.print("addr_cur:0x{x}, cur_block:0x{x}\r\n", .{ addr_cur, secter_cur }) catch {};
             }
             if (is_find == false) {
                 if (addr >= addr_cur and addr < addr_cur + b.size) {
@@ -86,12 +90,27 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.Fla
             }
 
             if (addr < addr_cur + b.size) {
-                if (Debug) {
-                    sys.debug.print("chip erase secter_cur:{x}\r\n", .{secter_cur}) catch {};
-                }
+                var bank: u8 = 1;
+                var pgn = secter_cur;
+
                 // Erase the block
                 flash_wait_for_last_operation();
-                regs.FLASH.CR.modify(.{ .PER = 1, .PNB = @as(u8, @intCast(secter_cur)) });
+                if (regs.FLASH.OPTR.read().DUALBANK == 0) {
+                    regs.FLASH.CR.modify(.{ .BKER = 0 });
+                } else {
+                    if (secter_cur < SECTER_PER_BANK) {
+                        regs.FLASH.CR.modify(.{ .BKER = 0 });
+                    } else {
+                        regs.FLASH.CR.modify(.{ .BKER = 1 });
+                        bank = 2;
+                        pgn -= SECTER_PER_BANK;
+                    }
+                }
+                if (Debug) {
+                    sys.debug.print("chip erase bank:{d},secter_cur:{x}\r\n", .{ bank, pgn }) catch {};
+                }
+                regs.FLASH.CR.modify(.{ .PNB = @as(u8, @intCast(pgn)) });
+                regs.FLASH.CR.modify(.{ .PER = 1 });
                 regs.FLASH.CR.modify(.{ .START = 1 });
                 flash_wait_for_last_operation();
                 regs.FLASH.CR.modify(.{ .PER = 0, .PNB = 0 });
