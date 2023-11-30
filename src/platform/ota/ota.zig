@@ -1,5 +1,6 @@
 const sys = @import("../sys.zig");
 const fal = @import("../fal/fal.zig");
+const std = @import("std");
 
 const mem = @import("std").mem;
 
@@ -86,8 +87,47 @@ pub fn get_fw_info(part: *const fal.partition.Partition, tail: bool) ?Ota_FW_Inf
         sys.debug.print("magic not match\r\n", .{}) catch {};
         return null;
     }
+    // check hdr_crc by Crc32IsoHdlc
+    const crc = std.hash.crc.Crc32IsoHdlc.hash(slice_info[0..(@sizeOf(Ota_FW_Info) - @sizeOf(u32))]);
+    if (crc != ota_fw_info.hdr_crc) {
+        sys.debug.print("hdr_crc not match\r\n", .{}) catch {};
+        // print hdr_crc and crc
+        sys.debug.print("hdr_crc:{x}, crc:{x}\r\n", .{ ota_fw_info.hdr_crc, crc }) catch {};
+        return null;
+    }
+
     return ota_fw_info;
 }
+
+// check partition crc
+// pub fn checkCrc(part: *const fal.partition.Partition, tail: bool) bool {
+//     var buf: [1024]u8 = undefined;
+//     var offset: u32 = 0;
+//     const ota_fw_info = get_fw_info(part, tail);
+//     if (ota_fw_info == null) {
+//         sys.debug.print("get_fw_info failed\r\n", .{}) catch {};
+//         return false;
+//     }
+//     const len = ota_fw_info.?.pkg_size;
+//     // check body_crc by Crc32IsoHdlc
+//     var CRC = std.hash.crc.Crc32IsoHdlc.init();
+//     if (tail == false) {
+//         offset = @sizeOf(Ota_FW_Info);
+//     }
+//     while (offset < len) : (offset += 1024) {
+//         const read_size = len - offset;
+//         if (read_size > 1024) {
+//             fal.partition.read(part, offset, &buf);
+//             CRC.update(buf[0..]);
+//         } else {
+//             fal.partition.read(part, offset, buf[0..read_size]);
+//             CRC.update(buf[0..read_size]);
+//         }
+//     }
+//     const crc = CRC.final();
+//     sys.debug.print("body_crc:{x}, crc:{x}", .{ ota_fw_info.?.body_crc, crc }) catch {};
+//     return true;
+// }
 
 // ota swap: move swap to target partition
 pub fn swap() void {
