@@ -84,7 +84,7 @@ pub fn get_fw_info(part: *const fal.partition.Partition, tail: bool) ?Ota_FW_Inf
 
     // check ota_fw_info
     if (ota_fw_info.magic[0] != 'R' or ota_fw_info.magic[1] != 'B' or ota_fw_info.magic[2] != 'L') {
-        sys.debug.print("magic not match\r\n", .{}) catch {};
+        // sys.debug.print("magic not match\r\n", .{}) catch {};
         return null;
     }
     // check hdr_crc by Crc32IsoHdlc
@@ -134,7 +134,6 @@ pub fn swap() void {
     const part = fal.partition.find("swap").?;
     const ret = get_fw_info(part, false);
     if (ret == null) {
-        sys.debug.print("don't need swap\r\n", .{}) catch {};
         return;
     }
     const ota_fw_info = ret.?;

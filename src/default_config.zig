@@ -35,13 +35,13 @@ pub const default_partition: [3]fal.partition.Partition = .{ .{
     .name = .{ 'a', 'p', 'p', 0, 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
     .offset = 0x00008000,
-    .len = 0x00048000,
+    .len = 0x00038000,
     .reserved = 0,
 }, .{
     .magic_word = fal.partition.FAL_MAGIC_WORD,
     .name = .{ 's', 'w', 'a', 'p', 0, 0, 0, 0 },
     .flash_name = .{ 'o', 'n', 'c', 'h', 'i', 'p', 0, 0 },
-    .offset = 0x00050000,
-    .len = 0x00030000,
+    .offset = 0x00040000,
+    .len = 0x00020000,
     .reserved = 0,
 } };

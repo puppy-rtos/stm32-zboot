@@ -22,6 +22,15 @@ const APP_RAM_SIZE = 0x00010000;
 
 pub fn jump_app() void {
     const app = fal.partition.find("app").?;
+
+    const ret = ota.get_fw_info(app, true);
+    if (ret == null) {
+        sys.debug.print("unkown app\r\n", .{}) catch {};
+        return;
+    }
+    const ota_fw_info = ret.?;
+    sys.debug.print("find app version:{s}\r\n", .{ota_fw_info.version}) catch {};
+
     const flash = fal.flash.find(app.flash_name[0..]).?;
     APP_ENTRY_ADDR = flash.start + app.offset;
 
@@ -34,7 +43,7 @@ pub fn jump_app() void {
     const jump_addr = @as(*u32, @ptrFromInt(APP_ENTRY_ADDR + 4)).*;
     const jump2app: *const fn () void = @ptrFromInt(jump_addr);
 
-    sys.debug.print("jump to app, offset:0x{x}, addr:0x{x}\r\n", .{ APP_ENTRY_ADDR, jump_addr }) catch {};
+    // sys.debug.print("jump to app, offset:0x{x}, addr:0x{x}\r\n", .{ APP_ENTRY_ADDR, jump_addr }) catch {};
 
     hal.clock.clock_deinit();
     jump2app();

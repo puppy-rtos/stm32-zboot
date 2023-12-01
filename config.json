@@ -7,14 +7,14 @@
             "tx": "PA9"
         },
         "spiflash": {
-            "enable": 1,
+            "enable": 0,
             "cs": "PB12",
             "sck": "PB13",
             "mosi": "PC3",
             "miso": "PC2"
         },
         "partition_table": {
-            "num": 4,
+            "num": 3,
             "patition": [
                 {
                     "name": "boot",
@@ -26,19 +26,13 @@
                     "name": "app",
                     "flash_name": "onchip",
                     "offset": 32768,
-                    "len": 360448
-                },
-                {
-                    "name": "fs",
-                    "flash_name": "onchip",
-                    "offset": 393216,
-                    "len": 131072
+                    "len": 229376
                 },
                 {
                     "name": "swap",
-                    "flash_name": "spiflash",
-                    "offset": 0,
-                    "len": 524288
+                    "flash_name": "onchip",
+                    "offset": 262144,
+                    "len": 131072
                 }
             ]
         }

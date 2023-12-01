@@ -81,6 +81,7 @@ pub fn init(start_offset: u32) void {
         if (new_flash == null) {
             sys.debug.print("flash {s} not find\r\n", .{partition_table.partition[partition_table.num].flash_name}) catch {};
         }
+        // TODO check partition addr and len
 
         partition_table.num += 1;
         partition_start += @sizeOf(Partition);
