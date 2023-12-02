@@ -69,6 +69,10 @@ pub fn main() !void {
     }
     fal.init();
 
+    // ota check app crc
+    if (ota.checkFW("app") == false) {
+        sys.debug.print("app check failed\r\n", .{}) catch {};
+    }
     ota.swap();
     jump_app();
 
