@@ -14,37 +14,75 @@ const FLASH_OPTKEYR_KEY2 = 0x4c5d6e7f;
 
 // unlock stm32 flash
 pub fn flash_unlock() void {
-    regs.FLASH.KEYR.raw = FLASH_KEYR_KEY1;
-    regs.FLASH.KEYR.raw = FLASH_KEYR_KEY2;
+    // bank1
+    regs.Flash.KEYR1.raw = FLASH_KEYR_KEY1;
+    regs.Flash.KEYR1.raw = FLASH_KEYR_KEY2;
+
+    // bank2
+    regs.Flash.KEYR2.raw = FLASH_KEYR_KEY1;
+    regs.Flash.KEYR2.raw = FLASH_KEYR_KEY2;
 }
 
 // lock stm32 flash
 pub fn flash_lock() void {
-    regs.FLASH.CR.modify(.{ .LOCK = 1 });
+    regs.Flash.CR1.modify(.{ .LOCK1 = 1 });
+    regs.Flash.CR2.modify(.{ .LOCK2 = 1 });
 }
 // flash_clear_status_flags
 pub fn flash_clear_status_flags() void {
-    regs.FLASH.SR.modify(.{ .PGSERR = 1, .SIZERR = 1, .PGAERR = 1, .WRPERR = 1, .PROGERR = 1, .EOP = 1 });
+    regs.Flash.CCR1.modify(.{ .CLR_PGSERR1 = 1, .CLR_WRPERR1 = 1, .CLR_EOP1 = 1, .CLR_OPERR1 = 1 });
+    regs.Flash.CCR2.modify(.{ .CLR_PGSERR2 = 1, .CLR_WRPERR2 = 1, .CLR_EOP2 = 1, .CLR_OPERR2 = 1 });
 }
 
 pub fn flash_wait_for_last_operation() void {
-    while (regs.FLASH.SR.read().BSY == 1) {
+    while (regs.Flash.SR1.read().BSY1 == 1 or regs.Flash.SR2.read().BSY2 == 1) {
         microzig.cpu.nop();
     }
 }
 
-// program an word(64 bit) to Flash
-pub fn flash_program_64(address: u32, data: u64) void {
+pub const FLASH_CR_PROGRAM_X8 = 0;
+pub const FLASH_CR_PROGRAM_X16 = 1;
+pub const FLASH_CR_PROGRAM_X32 = 2;
+pub const FLASH_CR_PROGRAM_X64 = 3;
+
+pub fn flash_set_program_size(isbank1: bool, psize: u32) void {
+    if (isbank1) {
+        regs.Flash.CR1.modify(.{ .PSIZE1 = @as(u2, @intCast(psize)) });
+    } else {
+        regs.Flash.CR2.modify(.{ .PSIZE2 = @as(u2, @intCast(psize)) });
+    }
+}
+
+// program an word(8 * 32 bit) to Flash
+pub fn flash_program_32byte(address: u32, data: []const u8) void {
     flash_wait_for_last_operation();
 
-    regs.FLASH.CR.modify(.{ .PG = 1 });
+    if (is_bank1(address)) {
+        while (regs.Flash.SR1.read().WBNE1 == 1) {
+            microzig.cpu.nop();
+        }
+        flash_set_program_size(true, FLASH_CR_PROGRAM_X8);
+        regs.Flash.CR1.modify(.{ .PG1 = 1 });
+    } else {
+        while (regs.Flash.SR2.read().WBNE2 == 1) {
+            microzig.cpu.nop();
+        }
+        flash_set_program_size(false, FLASH_CR_PROGRAM_X8);
+        regs.Flash.CR2.modify(.{ .PG2 = 1 });
+    }
 
-    const addr: *volatile u64 = @ptrFromInt(address);
-    addr.* = data;
+    for (data, 0..) |d, i| {
+        const addr: *volatile u8 = @ptrFromInt(address + i);
+        addr.* = d;
+    }
 
     flash_wait_for_last_operation();
 
-    regs.FLASH.CR.modify(.{ .PG = 0 });
+    if (is_bank1(address)) {
+        regs.Flash.CR1.modify(.{ .PG1 = 0 });
+    } else {
+        regs.Flash.CR2.modify(.{ .PG2 = 0 });
+    }
 }
 
 var SECTER_PER_BANK: u32 = 1024 * 1024 / 2 / 2048; // l496 1M flash, l475 512K flash
@@ -54,6 +92,15 @@ pub fn flash_init(self: *const Flash.Flash_Dev) Flash.FlashErr {
         sys.debug.print("chipflash size:0x{x}, SecterPerBank:0x{x}\r\n", .{ sys.zconfig.get_config().chipflash.size, SECTER_PER_BANK }) catch {};
     }
     return Flash.FlashErr.Ok;
+}
+
+// get bank1 or bank2 secter
+pub fn is_bank1(addr: u32) bool {
+    if ((addr - 0x8000000) < SECTER_PER_BANK * 0x20000) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.FlashErr {
@@ -90,24 +137,26 @@ pub fn flash_earse(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.Fla
 
                 // Erase the block
                 flash_wait_for_last_operation();
-                if (regs.FLASH.OPTR.read().DUALBANK == 0) {
-                    regs.FLASH.CR.modify(.{ .BKER = 0 });
-                } else {
-                    if (secter_cur < SECTER_PER_BANK) {
-                        regs.FLASH.CR.modify(.{ .BKER = 0 });
-                    } else {
-                        regs.FLASH.CR.modify(.{ .BKER = 1 });
-                        bank = 2;
-                        pgn -= SECTER_PER_BANK;
-                    }
+                if (secter_cur >= SECTER_PER_BANK) {
+                    bank = 2;
+                    pgn -= SECTER_PER_BANK;
                 }
                 if (Debug) {
                     sys.debug.print("chip erase bank:{d},secter_cur:{x}\r\n", .{ bank, pgn }) catch {};
                 }
-                regs.FLASH.CR.modify(.{ .PER = 1, .PNB = @as(u8, @intCast(pgn)) });
-                regs.FLASH.CR.modify(.{ .START = 1 });
-                flash_wait_for_last_operation();
-                regs.FLASH.CR.modify(.{ .PER = 0, .PNB = 0 });
+                if (bank == 1) {
+                    regs.Flash.CR1.modify(.{ .SER1 = 1, .SNB1 = @as(u3, @intCast(pgn)) });
+                    regs.Flash.CR1.modify(.{ .START1 = 1 });
+
+                    flash_wait_for_last_operation();
+                    regs.Flash.CR1.modify(.{ .SER1 = 0, .SNB1 = 0 });
+                } else {
+                    regs.Flash.CR2.modify(.{ .SER2 = 1, .SNB2 = @as(u3, @intCast(pgn)) });
+                    regs.Flash.CR2.modify(.{ .START2 = 1 });
+
+                    flash_wait_for_last_operation();
+                    regs.Flash.CR2.modify(.{ .SER2 = 0, .SNB2 = 0 });
+                }
                 if (Debug) {
                     for (addr_cur..addr_cur + b.size) |check_d| {
                         const d = @as(*u8, @ptrFromInt(check_d)).*;
@@ -140,15 +189,17 @@ pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Fl
     flash_clear_status_flags();
 
     var i: u32 = 0;
-    while (i < data.len) : (i += 8) {
-        var data64 = @as(*const volatile u64, @ptrCast(@alignCast(&data[i]))).*;
-        flash_program_64(addr + i, data64);
+    while (i < data.len) : (i += 32) {
+        flash_program_32byte(addr + i, data[i .. i + 32]);
 
-        const addr64: *const volatile u64 = @ptrFromInt(addr + i);
-        if (addr64.* != data64) {
-            sys.debug.print("write failed, data check error!\r\n", .{}) catch {};
-            ret = Flash.FlashErr.ErrWrite;
-            break;
+        // check data
+        for (data[i .. i + 32], 0..) |d, j| {
+            const addr8: *const volatile u8 = @ptrFromInt(addr + i + j);
+            if (d != addr8.*) {
+                sys.debug.print("write failed, data check error\r\n", .{}) catch {};
+                ret = Flash.FlashErr.ErrWrite;
+                break;
+            }
         }
     }
 
@@ -177,7 +228,7 @@ pub const chip_flash: Flash.Flash_Dev = .{
     .start = 0x08000000,
     .len = 0x100000,
     .blocks = .{
-        .{ .size = 0x800, .count = 512 },
+        .{ .size = 0x20000, .count = 8 },
         .{ .size = 0, .count = 0 },
         .{ .size = 0, .count = 0 },
         .{ .size = 0, .count = 0 },

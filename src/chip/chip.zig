@@ -4,6 +4,8 @@ pub const pin = if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32
     @import("stm32f4/pin.zig")
 else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32l4"))
     @import("stm32l4/pin.zig")
+else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32h7"))
+    @import("stm32h7/pin.zig")
 else
     struct {};
 
@@ -11,6 +13,8 @@ pub const clock = if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm
     @import("stm32f4/clock.zig")
 else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32l4"))
     @import("stm32l4/clock.zig")
+else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32h7"))
+    @import("stm32h7/clock.zig")
 else
     struct {};
 
@@ -18,6 +22,8 @@ pub const flash = if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm
     @import("stm32f4/flash.zig").chip_flash
 else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32l4"))
     @import("stm32l4/flash.zig").chip_flash
+else if (std.mem.eql(u8, @import("microzig").config.chip_name, "stm32h7"))
+    @import("stm32h7/flash.zig").chip_flash
 else
     struct {};
 
@@ -50,6 +56,20 @@ pub const chips = struct {
             },
             .register_definition = .{
                 .zig = .{ .cwd_relative = build_root ++ "stm32l4/regs.zig" },
+            },
+        },
+    };
+    pub const stm32h7 = .{
+        .preferred_format = .elf,
+        .chip = .{
+            .name = "stm32h7",
+            .cpu = .cortex_m7,
+            .memory_regions = &.{
+                .{ .offset = 0x08000000, .length = 128 * KiB, .kind = .flash },
+                .{ .offset = 0x20000000, .length = 16 * KiB, .kind = .ram },
+            },
+            .register_definition = .{
+                .zig = .{ .cwd_relative = build_root ++ "stm32h7/regs.zig" },
             },
         },
     };

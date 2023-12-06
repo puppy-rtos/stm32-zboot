@@ -16,12 +16,14 @@ Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootlo
 ### M1: Normal boot (rom < 16k)
 
  - [x] Support L4 series 
+ - [x] Firmware crc check
  - [ ] Firmware decompression
  - [x] Support spi nor flash 
  - [x] Basic zboot Tool
 
 ### M2: More series boot (rom < 32k)
 
+- [x] Support H7 series (no xip)
 - [ ] Support H7 series (XIP Flash)
 - [ ] Support differential upgrade
 - [ ] zboot Tool

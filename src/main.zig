@@ -26,10 +26,10 @@ pub fn jump_app() void {
     const ret = ota.get_fw_info(app, true);
     if (ret == null) {
         sys.debug.print("unkown app\r\n", .{}) catch {};
-        return;
+    } else {
+        const ota_fw_info = ret.?;
+        sys.debug.print("find app version:{s}\r\n", .{ota_fw_info.version}) catch {};
     }
-    const ota_fw_info = ret.?;
-    sys.debug.print("find app version:{s}\r\n", .{ota_fw_info.version}) catch {};
 
     const flash = fal.flash.find(app.flash_name[0..]).?;
     APP_ENTRY_ADDR = flash.start + app.offset;

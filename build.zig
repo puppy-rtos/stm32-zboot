@@ -6,6 +6,8 @@ const available_examples = [_]Example{
     .{ .name = "zboot-f4-app", .target = chips.stm32f4, .file = "src/app_main.zig", .linker_script = "src/chip/stm32f4/link_app.ld" },
     .{ .name = "zboot-l4", .target = chips.stm32l4, .file = "src/main.zig", .linker_script = "src/chip/stm32f4/link.ld" },
     .{ .name = "zboot-l4-app", .target = chips.stm32l4, .file = "src/app_main.zig", .linker_script = "src/chip/stm32f4/link_app.ld" },
+    .{ .name = "zboot-h7", .target = chips.stm32h7, .file = "src/main.zig", .linker_script = "src/chip/stm32h7/link.ld" },
+    .{ .name = "zboot-h7-app", .target = chips.stm32h7, .file = "src/app_main.zig", .linker_script = "src/chip/stm32h7/link_app.ld" },
 };
 
 pub fn build(b: *std.Build) void {
