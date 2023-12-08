@@ -1,6 +1,6 @@
     {
         "chipflash":{
-            "size": 1048576
+            "size": 1024
         },
         "uart": {
             "enable": 1,
@@ -20,19 +20,19 @@
                     "name": "boot",
                     "flash_name": "onchip",
                     "offset": 0,
-                    "len": 32768
+                    "len": 32
                 },
                 {
                     "name": "app",
                     "flash_name": "onchip",
-                    "offset": 32768,
-                    "len": 229376
+                    "offset": 32,
+                    "len": 224
                 },
                 {
                     "name": "swap",
                     "flash_name": "onchip",
-                    "offset": 262144,
-                    "len": 131072
+                    "offset": 256,
+                    "len": 128
                 }
             ]
         }

@@ -6,6 +6,7 @@ const mem = std.mem;
 const json = std.json;
 
 const Debug = false;
+const KiB = 1024;
 
 const ZC = @import("platform/sys.zig").zconfig;
 const Part = @import("platform/fal/fal.zig").partition;
@@ -159,7 +160,7 @@ pub fn json_parse() !void {
     if (Debug) {
         std.debug.print("chipflash size:{d}\n", .{json_config.chipflash.size});
     }
-    default_zconfig.chipflash.size = json_config.chipflash.size;
+    default_zconfig.chipflash.size = json_config.chipflash.size * KiB;
 
     // parse uart config
     if (Debug) {
@@ -216,8 +217,8 @@ pub fn json_parse() !void {
         default_partition[i].magic_word = Part.FAL_MAGIC_WORD;
         mem.copy(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
         mem.copy(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
-        default_partition[i].offset = json_config.partition_table.patition[i].offset;
-        default_partition[i].len = json_config.partition_table.patition[i].len;
+        default_partition[i].offset = json_config.partition_table.patition[i].offset * KiB;
+        default_partition[i].len = json_config.partition_table.patition[i].len * KiB;
         default_partition[i].reserved = 0;
     }
 }
