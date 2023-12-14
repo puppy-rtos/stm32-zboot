@@ -4,6 +4,8 @@ const std = @import("std");
 
 const mem = @import("std").mem;
 
+const QBOOT_FASTLZ_BLOCK_HDR_SIZE = 4;
+
 // ota header
 pub const Ota_FW_Info = extern struct {
     magic: [4]u8,
@@ -207,7 +209,7 @@ pub fn checkFW(name: []const u8) bool {
 }
 
 // ota swap: move swap to target partition
-pub fn swap() void {
+pub fn swap() !void {
     const part = fal.partition.find("swap").?;
     const ret = get_fw_info(part, false);
     if (ret == null) {
@@ -237,21 +239,69 @@ pub fn swap() void {
 
         sys.debug.print("swap [{s}] {s} => {s}\r\n", .{ ota_fw_info.name, ota_fw_info_target.version, ota_fw_info.version }) catch {};
     }
-    fal.partition.erase(part_target, 0, part_target.len);
-    // copy data
-    var buf: [1024]u8 = undefined;
-    var offset: u32 = 0;
-    while (offset < ota_fw_info.raw_size) : (offset += 1024) {
-        const read_size = ota_fw_info.raw_size - offset;
 
-        sys.debug.print("=", .{}) catch {};
-        if (read_size > 1024) {
-            fal.partition.read(part, offset + @sizeOf(Ota_FW_Info), &buf);
-            fal.partition.write(part_target, offset, &buf);
-        } else {
-            var tmp_bug: [1024]u8 = undefined;
-            fal.partition.read(part, offset + @sizeOf(Ota_FW_Info), &tmp_bug);
-            fal.partition.write(part_target, offset, &tmp_bug);
+    if (@intFromEnum(ota_fw_info.algo) & @intFromEnum(Ota_Algo.CMPRS_STAT_MASK) != 0) {
+        const algo1 = @intFromEnum(ota_fw_info.algo) & @intFromEnum(Ota_Algo.CMPRS_STAT_MASK);
+        switch (@as(Ota_Algo, @enumFromInt(algo1))) {
+            Ota_Algo.GZIP => sys.debug.print("algo:GZIP\r\n", .{}) catch {},
+            Ota_Algo.QUICKLZ => sys.debug.print("algo:QUICKLZ\r\n", .{}) catch {},
+            Ota_Algo.FASTLZ => sys.debug.print("algo:FASTLZ\r\n", .{}) catch {},
+            else => sys.debug.print("algo:unknown\r\n", .{}) catch {},
+        }
+    }
+    // fastlz decompress
+    if (@intFromEnum(ota_fw_info.algo) & @intFromEnum(Ota_Algo.CMPRS_STAT_MASK) == @intFromEnum(Ota_Algo.FASTLZ)) {
+        sys.debug.print("fastlz decompress\r\n", .{}) catch {};
+
+        // write decompress data to target partition
+        fal.partition.erase(part_target, 0, part_target.len);
+        var read_pos: usize = @sizeOf(Ota_FW_Info);
+        var write_pos: usize = 0;
+        while (read_pos < @sizeOf(Ota_FW_Info) + ota_fw_info.pkg_size) {
+            var block_header: [QBOOT_FASTLZ_BLOCK_HDR_SIZE]u8 = undefined;
+            var buffer: [1024 * 4]u8 = undefined;
+            var o_buf: [1024 * 4]u8 = undefined;
+
+            // read block size
+            fal.partition.read(part, read_pos, block_header[0..]);
+            read_pos += block_header.len;
+
+            // decompress the buffer
+            const blk_size = fastlz_get_block_size(block_header[0..]);
+            if (blk_size <= 0) {
+                sys.debug.print("blk_size error: {d}\r\n", .{blk_size}) catch {};
+                return;
+            }
+            sys.debug.print("=", .{}) catch {};
+
+            // read block data
+            fal.partition.read(part, read_pos, buffer[0..blk_size]);
+            read_pos += blk_size;
+
+            const dec_size = fastlz1_decompress(o_buf[0..], buffer[0..blk_size]);
+            sys.debug.print("fastlz_decompress returned {d}\r\n", .{dec_size}) catch {};
+
+            // write to file
+            fal.partition.write(part_target, write_pos, o_buf[0..dec_size]);
+            write_pos += dec_size;
+        }
+    } else {
+        fal.partition.erase(part_target, 0, part_target.len);
+        // copy data
+        var buf: [1024]u8 = undefined;
+        var offset: u32 = 0;
+        while (offset < ota_fw_info.raw_size) : (offset += 1024) {
+            const read_size = ota_fw_info.raw_size - offset;
+
+            sys.debug.print("=", .{}) catch {};
+            if (read_size > 1024) {
+                fal.partition.read(part, offset + @sizeOf(Ota_FW_Info), &buf);
+                fal.partition.write(part_target, offset, &buf);
+            } else {
+                var tmp_bug: [1024]u8 = undefined;
+                fal.partition.read(part, offset + @sizeOf(Ota_FW_Info), &tmp_bug);
+                fal.partition.write(part_target, offset, &tmp_bug);
+            }
         }
     }
     // write ota_info to target partition end
@@ -259,4 +309,85 @@ pub fn swap() void {
     fal.partition.write(part_target, part_target.len - @sizeOf(Ota_FW_Info), slice_info[0..]);
 
     sys.debug.print("\r\nswap success, start clean swap parttion\r\n", .{}) catch {};
+}
+
+fn fastlz_get_block_size(comp_datas: []const u8) u32 {
+    var block_size: u32 = 0;
+    for (0..QBOOT_FASTLZ_BLOCK_HDR_SIZE) |i| {
+        block_size <<= 8;
+        block_size += comp_datas[i];
+    }
+    return (block_size);
+}
+
+fn FASTLZ_BOUND_CHECK(cond: bool) void {
+    if (cond) return;
+    sys.debug.print("fastlz:corrupt\r\n", .{}) catch {};
+}
+
+pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
+    var ipIdx: u32 = 0;
+    var ipLimitIdx = input.len;
+    var opIdx: u32 = 0;
+    var opLimitIdx = output.len;
+
+    var ctrl: u8 = input[ipIdx] & 0b11111;
+    ipIdx += 1;
+
+    var loop = true;
+    while (loop) {
+        var len: u32 = ctrl >> 5;
+        var ofs: u32 = std.math.shl(u32, (ctrl & 0b11111), 8);
+        // dump len and ofs
+        // std.debug.print("len:{d}, ofs:{d}\r\n", .{ len, ofs });
+
+        if (ctrl >= 0b100000) {
+            var refIdx: u32 = opIdx - ofs - 1;
+            len -= 1;
+            if (len == 7 - 1) {
+                len += input[ipIdx];
+                ipIdx += 1;
+            }
+
+            FASTLZ_BOUND_CHECK(ipIdx < ipLimitIdx);
+            refIdx -= input[ipIdx];
+            ipIdx += 1;
+
+            if (ipIdx < ipLimitIdx) {
+                ctrl = input[ipIdx];
+                ipIdx += 1;
+            } else {
+                loop = false;
+            }
+
+            FASTLZ_BOUND_CHECK(opIdx + len + 3 <= opLimitIdx);
+            FASTLZ_BOUND_CHECK(refIdx < opLimitIdx);
+            if (refIdx == opIdx) {
+                var b = output[refIdx];
+                len += 3;
+                @memset(output[opIdx .. opIdx + len], b);
+                opIdx += len;
+            } else {
+                len += 3;
+                std.mem.copy(u8, output[opIdx .. opIdx + len], output[refIdx .. refIdx + len]);
+                opIdx += len;
+                refIdx += len;
+            }
+        } else {
+            ctrl += 1;
+
+            FASTLZ_BOUND_CHECK(opIdx + ctrl <= opLimitIdx);
+            FASTLZ_BOUND_CHECK(ipIdx + ctrl <= ipLimitIdx);
+            std.mem.copy(u8, output[opIdx .. opIdx + ctrl], input[ipIdx .. ipIdx + ctrl]);
+            opIdx += ctrl;
+            ipIdx += ctrl;
+
+            loop = ipIdx < ipLimitIdx;
+            if (loop) {
+                ctrl = input[ipIdx];
+                ipIdx += 1;
+            }
+        }
+    }
+    return opIdx;
 }

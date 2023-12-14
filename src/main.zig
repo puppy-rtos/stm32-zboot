@@ -73,7 +73,8 @@ pub fn main() !void {
     if (ota.checkFW("app") == false) {
         sys.debug.print("app check failed\r\n", .{}) catch {};
     }
-    ota.swap();
+
+    try ota.swap();
     jump_app();
 
     while (true) {}

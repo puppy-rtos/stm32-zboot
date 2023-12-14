@@ -110,6 +110,7 @@ pub fn write(partition: *const Partition, offset: u32, data: []const u8) void {
 }
 
 // partition read
+// todo add return
 pub fn read(partition: *const Partition, offset: u32, data: []u8) void {
     const flash = fal.flash.find(partition.flash_name[0..]).?;
     _ = flash.read(flash.start + partition.offset + offset, data);
