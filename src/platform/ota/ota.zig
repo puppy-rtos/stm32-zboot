@@ -231,8 +231,13 @@ pub fn swap() !void {
         sys.debug.print("swap [{s}] {s} => {s}\r\n", .{ ota_fw_info.name, "unkown", ota_fw_info.version }) catch {};
     } else {
         const ota_fw_info_target = ret2.?;
-        // if new version is same as old version, don't swap
-        if (mem.eql(u8, ota_fw_info_target.version[0..], ota_fw_info.version[0..])) {
+
+        // check app
+        // ota check app crc
+        if (checkFW("app") == false) {
+            sys.debug.print("app check failed\r\n", .{}) catch {};
+        } else if (mem.eql(u8, ota_fw_info_target.version[0..], ota_fw_info.version[0..])) {
+            // if new version is same as old version, don't swap
             sys.debug.print("version is same, don't need swap\r\n", .{}) catch {};
             return;
         }
@@ -279,7 +284,7 @@ pub fn swap() !void {
             read_pos += blk_size;
 
             const dec_size = fastlz1_decompress(o_buf[0..], buffer[0..blk_size]);
-            sys.debug.print("fastlz_decompress returned {d}\r\n", .{dec_size}) catch {};
+            // sys.debug.print("fastlz_decompress returned {d}\r\n", .{dec_size}) catch {};
 
             // write to file
             fal.partition.write(part_target, write_pos, o_buf[0..dec_size]);
