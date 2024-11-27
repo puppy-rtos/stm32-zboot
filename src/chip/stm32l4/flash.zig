@@ -1,5 +1,5 @@
-const microzig = @import("microzig");
-const regs = microzig.chip.peripherals;
+const regs = @import("regs.zig").devices.stm32l4.peripherals;
+const cpu = @import("../cortex-m.zig");
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");
@@ -29,7 +29,7 @@ pub fn flash_clear_status_flags() void {
 
 pub fn flash_wait_for_last_operation() void {
     while (regs.FLASH.SR.read().BSY == 1) {
-        microzig.cpu.nop();
+        cpu.nop();
     }
 }
 
@@ -141,7 +141,7 @@ pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Fl
 
     var i: u32 = 0;
     while (i < data.len) : (i += 8) {
-        var data64 = @as(*const volatile u64, @ptrCast(@alignCast(&data[i]))).*;
+        const data64 = @as(*const volatile u64, @ptrCast(@alignCast(&data[i]))).*;
         flash_program_64(addr + i, data64);
 
         const addr64: *const volatile u64 = @ptrFromInt(addr + i);

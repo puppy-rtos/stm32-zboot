@@ -17,28 +17,33 @@ SECTIONS
 {
   .text :
   {
-     KEEP(*(microzig_flash_start))
-     *(.text*)
-     KEEP(*(fal))
+    KEEP(*(microzig_flash_start))
+    *(.text*)
+    KEEP(*(fal))
   } > flash0
 
   .ARM.exidx : {
-      *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    *(.ARM.exidx* .gnu.linkonce.armexidx.*)
   } >flash0
 
   .data :
   {
-     microzig_data_start = .;
-     *(.rodata*)
-     *(.data*)
-     microzig_data_end = .;
+    microzig_data_start = .;
+    *(.rodata*)
+    *(.data*)
+    microzig_data_end = .;
   } > ram0 AT> flash0
 
   .bss (NOLOAD) :
   {
-      microzig_bss_start = .;
-      *(.bss*)
-      microzig_bss_end = .;
+    microzig_bss_start = .;
+    *(.bss*)
+    microzig_bss_end = .;
+    . = ALIGN(4);
+    microzig_stack_start = .;
+    . = . + 0x8000;
+    . = ALIGN(4);
+    microzig_stack_end = .;
   } > ram0
 
   microzig_data_load_start = LOADADDR(.data);

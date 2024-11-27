@@ -113,7 +113,7 @@ pub const Flash_Dev = struct {
 
 // flash list
 const flash_list: [2]*const Flash_Dev = .{
-    &@import("../../hal/hal.zig").flash,
+    &@import("../../hal/hal.zig").flash.chip_flash,
     &@import("../sfud/sfud.zig").flash.spi_flash,
 };
 

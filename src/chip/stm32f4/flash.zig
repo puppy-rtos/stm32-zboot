@@ -1,5 +1,5 @@
-const microzig = @import("microzig");
-const regs = microzig.chip.peripherals;
+const regs = @import("regs.zig").devices.stm32f4.peripherals;
+const cpu = @import("../cortex-m.zig");
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");
@@ -34,7 +34,7 @@ pub const FLASH_CR_PROGRAM_X64 = 3;
 
 pub fn flash_wait_for_last_operation() void {
     while (regs.FLASH.SR.read().BSY == 1) {
-        microzig.cpu.nop();
+        cpu.nop();
     }
 }
 

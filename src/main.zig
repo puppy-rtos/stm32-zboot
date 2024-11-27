@@ -1,6 +1,4 @@
 const std = @import("std");
-const microzig = @import("microzig");
-
 const hal = @import("hal/hal.zig");
 
 const sys = @import("platform/sys.zig");
@@ -45,12 +43,12 @@ pub fn jump_app() void {
 
     // sys.debug.print("jump to app, offset:0x{x}, addr:0x{x}\r\n", .{ APP_ENTRY_ADDR, jump_addr }) catch {};
 
-    hal.clock.clock_deinit();
+    hal.clock.deinit();
     jump2app();
 }
 
-pub fn main() !void {
-    hal.clock.clock_init();
+export fn main() noreturn {
+    hal.init();
     sys.zconfig.probe_extconfig(sys.get_rom_end());
     const zboot_config = sys.zconfig.get_config();
     if (zboot_config.uart.enable) {
@@ -58,7 +56,7 @@ pub fn main() !void {
         show_logo();
     }
     if (zboot_config.spiflash.enable) {
-        const spi = try hal.spi.Spi(zboot_config.spiflash.mosi[0..], zboot_config.spiflash.miso[0..], zboot_config.spiflash.sck[0..], zboot_config.spiflash.cs[0..]);
+        const spi = hal.spi.Spi(zboot_config.spiflash.mosi[0..], zboot_config.spiflash.miso[0..], zboot_config.spiflash.sck[0..], zboot_config.spiflash.cs[0..]) catch unreachable;
         const spiflash = sfud.flash.probe("spiflash", spi);
         // dump spiflash info
         if (spiflash) |flash| {

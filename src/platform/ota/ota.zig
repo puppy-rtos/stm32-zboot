@@ -139,7 +139,7 @@ fn checkHash(name: []const u8) bool {
         sys.debug.print("get_fw_info failed\r\n", .{}) catch {};
         return false;
     }
-    var len = ota_fw_info.?.raw_size;
+    const len = ota_fw_info.?.raw_size;
     // check body_crc
     var hash: u32 = ZBOOT_HASH_FNV_SEED;
     while (offset < len) : (offset += 1024) {
@@ -332,9 +332,9 @@ fn FASTLZ_BOUND_CHECK(cond: bool) void {
 
 pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
     var ipIdx: u32 = 0;
-    var ipLimitIdx = input.len;
+    const ipLimitIdx = input.len;
     var opIdx: u32 = 0;
-    var opLimitIdx = output.len;
+    const opLimitIdx = output.len;
 
     var ctrl: u8 = input[ipIdx] & 0b11111;
     ipIdx += 1;
@@ -342,7 +342,7 @@ pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
     var loop = true;
     while (loop) {
         var len: u32 = ctrl >> 5;
-        var ofs: u32 = std.math.shl(u32, (ctrl & 0b11111), 8);
+        const ofs: u32 = std.math.shl(u32, (ctrl & 0b11111), 8);
         // dump len and ofs
         // std.debug.print("len:{d}, ofs:{d}\r\n", .{ len, ofs });
 
@@ -368,13 +368,13 @@ pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
             FASTLZ_BOUND_CHECK(opIdx + len + 3 <= opLimitIdx);
             FASTLZ_BOUND_CHECK(refIdx < opLimitIdx);
             if (refIdx == opIdx) {
-                var b = output[refIdx];
+                const b = output[refIdx];
                 len += 3;
                 @memset(output[opIdx .. opIdx + len], b);
                 opIdx += len;
             } else {
                 len += 3;
-                std.mem.copy(u8, output[opIdx .. opIdx + len], output[refIdx .. refIdx + len]);
+                std.mem.copyForwards(u8, output[opIdx .. opIdx + len], output[refIdx .. refIdx + len]);
                 opIdx += len;
                 refIdx += len;
             }
@@ -383,7 +383,7 @@ pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
 
             FASTLZ_BOUND_CHECK(opIdx + ctrl <= opLimitIdx);
             FASTLZ_BOUND_CHECK(ipIdx + ctrl <= ipLimitIdx);
-            std.mem.copy(u8, output[opIdx .. opIdx + ctrl], input[ipIdx .. ipIdx + ctrl]);
+            std.mem.copyForwards(u8, output[opIdx .. opIdx + ctrl], input[ipIdx .. ipIdx + ctrl]);
             opIdx += ctrl;
             ipIdx += ctrl;
 

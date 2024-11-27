@@ -1,28 +1,27 @@
 const std = @import("std");
+const regs = @import("regs.zig").devices.stm32h7.peripherals;
+const GPIO_Type = @import("regs.zig").types.peripherals.GPIOA;
+const RCC_Type = @import("regs.zig").types.peripherals.RCC;
 
 const hal = @import("../../hal/hal.zig");
 const PinType = hal.pin.PinType;
 const Pin_Mode = hal.pin.Pin_Mode;
 const Pin_Level = hal.pin.Pin_Level;
 
-const microzig = @import("microzig");
-const regs = microzig.chip.peripherals;
-const types = microzig.chip.types.peripherals;
-
 pub const ChipPinData = struct {
-    port: *volatile types.GPIOA,
+    port: *volatile GPIO_Type,
     pin: u8,
 };
 
 // pin set mode
 fn set_mode(self: *const PinType, pin_mode: Pin_Mode) void {
-    const port: *volatile types.GPIOA = self.data.port;
+    const port: *volatile GPIO_Type = @as(*volatile GPIO_Type, @ptrFromInt(self.data.port));
     const pin: u8 = self.data.pin;
     if (pin_mode == Pin_Mode.Output) {
-        var moder_raw: u32 = port.MODER.raw;
+        var moder_raw: u32 = port.MODER.raw; // todo .read()
         moder_raw = moder_raw & ~std.math.shl(u32, 0b11, pin * 2);
         moder_raw = moder_raw | std.math.shl(u32, 0b01, pin * 2);
-        port.MODER.raw = moder_raw;
+        port.MODER.write_raw(moder_raw);
     } else if (pin_mode == Pin_Mode.Input) {
         var moder_raw: u32 = port.MODER.raw;
         moder_raw = moder_raw & ~std.math.shl(u32, 0b11, pin * 2);
@@ -32,7 +31,7 @@ fn set_mode(self: *const PinType, pin_mode: Pin_Mode) void {
 
 // pin write
 fn write(self: *const PinType, value: Pin_Level) void {
-    const port: *volatile types.GPIOA = self.data.port;
+    const port: *volatile GPIO_Type = @as(*volatile GPIO_Type, @ptrFromInt(self.data.port));
     const pin: u8 = self.data.pin;
     if (value == Pin_Level.High) {
         port.ODR.raw = port.ODR.raw | std.math.shl(u32, 1, pin);
@@ -43,10 +42,10 @@ fn write(self: *const PinType, value: Pin_Level) void {
 
 // pin read
 fn read(self: *const PinType) Pin_Level {
-    const port: *volatile types.GPIOA = self.data.port;
+    const port: *volatile GPIO_Type = @as(*volatile GPIO_Type, @ptrFromInt(self.data.port));
     const pin: u8 = self.data.pin;
-    var idr_raw = port.IDR.raw;
-    var pin_set = std.math.shl(u32, 1, pin);
+    const idr_raw = port.IDR.raw;
+    const pin_set = std.math.shl(u32, 1, pin);
     if (idr_raw & pin_set != 0) {
         return Pin_Level.High;
     } else {
@@ -62,22 +61,25 @@ const ops: hal.pin.PinOps = .{
 
 pub fn init(name: []const u8) !PinType {
     // parse name
-    var port_num = name[1] - 'A';
-    var port_addr: u32 = @intFromPtr(regs.GPIOA) + 0x400 * @as(u32, port_num);
-    var pin_num: u32 = try parseU32(name[2..]);
+    const port_num = name[1] - 'A';
+    const port_addr: u32 = @intFromPtr(regs.GPIOA) + 0x400 * @as(u32, port_num);
+    const pin_num: u32 = try parseU32(name[2..]);
 
-    var self: PinType = .{ .data = .{ .port = @as(*volatile types.GPIOA, @ptrFromInt(port_addr)), .pin = @intCast(pin_num) }, .ops = &ops };
+    const self: PinType = .{ .data = .{ .port = port_addr, .pin = @intCast(pin_num) }, .ops = &ops };
 
-    // Enable GPIOX(A..) port
+    const port = @as(*volatile GPIO_Type, @ptrFromInt(port_addr));
+    const pin: u8 = @intCast(pin_num);
+
+    // Enable PinX(A..) port
     var ahbenr_raw = regs.RCC.AHB4ENR.raw;
     ahbenr_raw = ahbenr_raw | std.math.shl(u32, 1, port_num);
     regs.RCC.AHB4ENR.raw = ahbenr_raw;
     // Enable PinX to output
-    var moder_raw: u32 = self.data.port.MODER.raw;
+    var moder_raw: u32 = port.MODER.raw;
     // todo: optimize
-    moder_raw = moder_raw & ~std.math.shl(u32, 0b11, self.data.pin * 2);
-    moder_raw = moder_raw | std.math.shl(u32, 0b01, self.data.pin * 2);
-    self.data.port.MODER.raw = moder_raw;
+    moder_raw = moder_raw & ~std.math.shl(u32, 0b11, pin * 2);
+    moder_raw = moder_raw | std.math.shl(u32, 0b01, pin * 2);
+    port.MODER.raw = moder_raw;
 
     return self;
 }

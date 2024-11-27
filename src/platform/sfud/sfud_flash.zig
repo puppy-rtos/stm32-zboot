@@ -84,7 +84,7 @@ pub fn set_flash_write_enable(flash: *const SfudFlash, enabled: bool) bool {
     } else {
         cmd[0] = @intFromEnum(SfudCmd.WriteDisable);
     }
-    var result = flash.spi.wr(cmd[0..], null);
+    const result = flash.spi.wr(cmd[0..], null);
     if (result) {
         register_status = read_status_register(flash);
     }
@@ -165,7 +165,7 @@ pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Fl
             }
         }
 
-        std.mem.copy(u8, cmd_data[cmd_size .. cmd_size + data_size], data[(write_pos - addr) .. (write_pos - addr) + data_size]);
+        std.mem.copyForwards(u8, cmd_data[cmd_size .. cmd_size + data_size], data[(write_pos - addr) .. (write_pos - addr) + data_size]);
         result = sfud_flash.spi.wr(cmd_data[0 .. cmd_size + data_size], null);
         if (result != true) {
             sys.debug.print("Error: Flash write SPI communicate error.\r\n", .{}) catch {};

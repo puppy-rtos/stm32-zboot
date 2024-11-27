@@ -14,6 +14,7 @@ const Part = @import("platform/fal/fal.zig").partition;
 pub var partition_num: u32 = 0;
 pub var default_partition: [Part.partition_table_MAX]Part.Partition = undefined;
 pub var default_zconfig: ZC.ZbootConfig = undefined;
+
 const JsonChipFlash = struct {
     size: u32,
 };
@@ -77,7 +78,7 @@ pub fn main() !void {
     //open file and write bin data to rtthread.bin
 
     var file_name_buf: [512]u8 = undefined;
-    var file_name = try std.fmt.bufPrint(&file_name_buf, "{s}_singed.bin", .{input_file});
+    const file_name = try std.fmt.bufPrint(&file_name_buf, "{s}_singed.bin", .{input_file});
     std.debug.print("=> {s}\n", .{file_name});
     const bin_file = try std.fs.cwd().createFile(file_name, .{});
 
@@ -89,7 +90,7 @@ pub fn main() !void {
 
     var out_file: std.fs.File = undefined;
     var read_buf: [BUF_SIZE]u8 = undefined;
-    var out_buf: [BUF_SIZE]u8 = undefined;
+    const out_buf: [BUF_SIZE]u8 = undefined;
     _ = out_buf;
     var offset: usize = 0;
     var write_offset: usize = 0;
@@ -121,7 +122,7 @@ pub fn main() !void {
     try json_parse();
     // write zbootconfig data
     default_zconfig.magic = ZC.ZBOOT_CONFIG_MAGIC;
-    var slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
+    const slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
     const ret_uart = try out_stream.write(slice_config);
     if (ret_uart != slice_config.len) {
         std.debug.print("write file error: {d}\n", .{ret_uart});
@@ -129,7 +130,7 @@ pub fn main() !void {
     }
 
     // write partition data
-    var slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Part.Partition) * partition_num)];
+    const slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Part.Partition) * partition_num)];
 
     const ret = try out_stream.write(slice);
     if (ret != slice.len) {
@@ -176,7 +177,7 @@ pub fn json_parse() !void {
     } else {
         default_zconfig.uart.enable = false;
     }
-    mem.copy(u8, &default_zconfig.uart.tx, json_config.uart.tx[0..json_config.uart.tx.len]);
+    mem.copyForwards(u8, &default_zconfig.uart.tx, json_config.uart.tx[0..json_config.uart.tx.len]);
 
     // parse spiflash config
     if (Debug) {
@@ -191,10 +192,10 @@ pub fn json_parse() !void {
     } else {
         default_zconfig.spiflash.enable = false;
     }
-    mem.copy(u8, &default_zconfig.spiflash.cs, json_config.spiflash.cs[0..json_config.spiflash.cs.len]);
-    mem.copy(u8, &default_zconfig.spiflash.sck, json_config.spiflash.sck[0..json_config.spiflash.sck.len]);
-    mem.copy(u8, &default_zconfig.spiflash.mosi, json_config.spiflash.mosi[0..json_config.spiflash.mosi.len]);
-    mem.copy(u8, &default_zconfig.spiflash.miso, json_config.spiflash.miso[0..json_config.spiflash.miso.len]);
+    mem.copyForwards(u8, &default_zconfig.spiflash.cs, json_config.spiflash.cs[0..json_config.spiflash.cs.len]);
+    mem.copyForwards(u8, &default_zconfig.spiflash.sck, json_config.spiflash.sck[0..json_config.spiflash.sck.len]);
+    mem.copyForwards(u8, &default_zconfig.spiflash.mosi, json_config.spiflash.mosi[0..json_config.spiflash.mosi.len]);
+    mem.copyForwards(u8, &default_zconfig.spiflash.miso, json_config.spiflash.miso[0..json_config.spiflash.miso.len]);
 
     // parse fal partition config
     partition_num = json_config.partition_table.num;
@@ -215,8 +216,8 @@ pub fn json_parse() !void {
             return;
         }
         default_partition[i].magic_word = Part.FAL_MAGIC_WORD;
-        mem.copy(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
-        mem.copy(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
+        mem.copyForwards(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
+        mem.copyForwards(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
         default_partition[i].offset = json_config.partition_table.patition[i].offset * KiB;
         default_partition[i].len = json_config.partition_table.patition[i].len * KiB;
         default_partition[i].reserved = 0;

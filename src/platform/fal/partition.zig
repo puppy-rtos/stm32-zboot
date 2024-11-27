@@ -32,7 +32,7 @@ comptime {
     const export_opts = .{
         .name = "default_partition",
         .section = "fal",
-        .linkage = .Strong,
+        .linkage = .strong,
     };
     @export(dconfig.default_partition, export_opts);
 }
@@ -55,7 +55,7 @@ pub fn init(start_offset: u32) void {
 
     // find magic word
     var magic_word: u32 = 0;
-    var slice = @as([*]u8, @ptrCast(&magic_word))[0..(@sizeOf(u32))];
+    const slice = @as([*]u8, @ptrCast(&magic_word))[0..(@sizeOf(u32))];
     var partition_start: u32 = start_offset;
     var part_is_find: bool = false;
     while (partition_start < start_offset + FAL_PATITION_SIZE_MAX) : (partition_start += 1) {
@@ -69,7 +69,7 @@ pub fn init(start_offset: u32) void {
     partition_table.num = 0;
     // load partition
     while (part_is_find) {
-        var part_new = @as([*]u8, @ptrCast(&partition_table.partition[partition_table.num]))[0..(@sizeOf(Partition))];
+        const part_new = @as([*]u8, @ptrCast(&partition_table.partition[partition_table.num]))[0..(@sizeOf(Partition))];
 
         _ = flash.read(partition_start, part_new);
         // check magic word

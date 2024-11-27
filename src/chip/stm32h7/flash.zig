@@ -1,5 +1,5 @@
-const microzig = @import("microzig");
-const regs = microzig.chip.peripherals;
+const regs = @import("regs.zig").devices.stm32h7.peripherals;
+const cpu = @import("../cortex-m.zig");
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");
@@ -36,7 +36,7 @@ pub fn flash_clear_status_flags() void {
 
 pub fn flash_wait_for_last_operation() void {
     while (regs.Flash.SR1.read().BSY1 == 1 or regs.Flash.SR2.read().BSY2 == 1) {
-        microzig.cpu.nop();
+        cpu.nop();
     }
 }
 
@@ -59,13 +59,13 @@ pub fn flash_program_32byte(address: u32, data: []const u8) void {
 
     if (is_bank1(address)) {
         while (regs.Flash.SR1.read().WBNE1 == 1) {
-            microzig.cpu.nop();
+            cpu.nop();
         }
         flash_set_program_size(true, FLASH_CR_PROGRAM_X8);
         regs.Flash.CR1.modify(.{ .PG1 = 1 });
     } else {
         while (regs.Flash.SR2.read().WBNE2 == 1) {
-            microzig.cpu.nop();
+            cpu.nop();
         }
         flash_set_program_size(false, FLASH_CR_PROGRAM_X8);
         regs.Flash.CR2.modify(.{ .PG2 = 1 });

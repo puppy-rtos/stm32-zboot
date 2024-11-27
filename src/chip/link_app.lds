@@ -17,7 +17,7 @@ SECTIONS
 {
   .text :
   {
-     KEEP(*(microzig_flash_start))
+      KEEP(*(microzig_flash_start))
      *(.text*)
      KEEP(*(fal))
   } > flash0
@@ -39,6 +39,11 @@ SECTIONS
       microzig_bss_start = .;
       *(.bss*)
       microzig_bss_end = .;
+      . = ALIGN(4);
+      microzig_stack_start = .;
+      . = . + 0x8000;
+      . = ALIGN(4);
+      microzig_stack_end = .;
   } > ram0
 
   microzig_data_load_start = LOADADDR(.data);

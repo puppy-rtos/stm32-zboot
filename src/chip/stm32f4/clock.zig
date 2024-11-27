@@ -1,8 +1,6 @@
 const std = @import("std");
-const microzig = @import("microzig");
-const regs = microzig.chip.peripherals;
-
-var sysfreq: u32 = 0;
+const cpu = @import("../cortex-m.zig");
+const regs = @import("regs.zig").devices.stm32f4.peripherals;
 
 pub fn clock_init() void {
 
@@ -13,7 +11,7 @@ pub fn clock_init() void {
     regs.RCC.CR.modify(.{ .HSION = 1 });
     // Wait for HSI ready
     while (regs.RCC.CR.read().HSIRDY != 1) {
-        microzig.cpu.nop();
+        asm volatile ("nop");
     }
 
     // Use HSI as system clock
@@ -26,7 +24,7 @@ pub fn clock_init() void {
     regs.RCC.PLLCFGR.modify(.{ .PLLSRC = 0, .PLLM = 8, .PLLN = 80, .PLLP = 0b00, .PLLQ = 4 });
 
     // clear clock interrupt
-    regs.RCC.CIR.raw = 0;
+    regs.RCC.CIR.write_raw(0);
 
     // Prefetch enable; Instruction cache enable; Data cache enable; Set flash latency
     regs.FLASH.ACR.modify(.{ .PRFTEN = 1, .ICEN = 1, .DCEN = 1, .LATENCY = 0b010 });
@@ -35,23 +33,22 @@ pub fn clock_init() void {
     regs.RCC.CR.modify(.{ .PLLON = 1 });
     // Wait for PLL ready
     while (regs.RCC.CR.read().PLLRDY != 1) {
-        microzig.cpu.nop();
+        asm volatile ("nop");
     }
     // Use PLL as system clock
     regs.RCC.CFGR.modify(.{ .SW = 0b10 });
     while (regs.RCC.CFGR.read().SWS != 0b10) {
-        microzig.cpu.nop();
+        asm volatile ("nop");
     }
 
-    sysfreq = get_sysfreq();
     // init systick
-    microzig.cpu.peripherals.SysTick.LOAD.raw = 0xFFFFFF;
-    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 1, .CLKSOURCE = 1 });
+    cpu.peripherals.SysTick.LOAD.raw = 0xFFFFFF;
+    cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 1, .CLKSOURCE = 1 });
 }
 
 pub fn clock_deinit() void {
     // Reset clock
-    microzig.cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
+    cpu.peripherals.SysTick.CTRL.modify(.{ .ENABLE = 0 });
     regs.RCC.CFGR.raw = 0x00000000;
 }
 
@@ -89,32 +86,8 @@ pub fn get_sysfreq() u32 {
     return sysclockfreq;
 }
 
-// delay_ms
-pub fn delay_ms(ms: u32) void {
-    for (0..ms) |i| {
-        _ = i;
-        delay_us(1000);
-    }
-}
-
-// delay us
-pub fn delay_us(us: u32) void {
-    var ticks: u32 = 0;
-    var start: u32 = 0;
-    var current: u32 = 0;
-
-    ticks = us * (sysfreq / 1000000);
-    start = microzig.cpu.peripherals.SysTick.VAL.raw;
-    while (true) {
-        current = microzig.cpu.peripherals.SysTick.VAL.raw;
-        microzig.cpu.nop();
-        if (start < current) {
-            current = start + (0xFFFFFF - current);
-        } else {
-            current = start - current;
-        }
-        if (current > ticks) {
-            break;
-        }
-    }
-}
+pub const clock = .{
+    .init = &clock_init,
+    .deinit = &clock_deinit,
+    .get_sysfreq = &get_sysfreq,
+};
