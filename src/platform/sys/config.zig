@@ -2,10 +2,6 @@ pub const PIN_NAME_MAX = 8;
 // magic num
 pub const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
 
-pub const ChipFlashConfig = extern struct {
-    size: u32,
-};
-
 pub const UartConfig = extern struct {
     enable: bool,
     tx: [PIN_NAME_MAX]u8,
@@ -23,7 +19,6 @@ pub const SpiFlashConfig = extern struct {
 pub const ZbootConfig = extern struct {
     // magic num
     magic: u32,
-    chipflash: ChipFlashConfig,
     uart: UartConfig,
     spiflash: SpiFlashConfig,
 };

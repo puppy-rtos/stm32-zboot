@@ -1,7 +1,4 @@
     {
-        "chipflash":{
-            "size": 1024
-        },
         "uart": {
             "enable": 1,
             "tx": "PA9"
@@ -25,8 +22,8 @@
                 {
                     "name": "app",
                     "flash_name": "onchip",
-                    "offset": 32,
-                    "len": 224
+                    "offset": 128,
+                    "len": 128
                 },
                 {
                     "name": "swap",

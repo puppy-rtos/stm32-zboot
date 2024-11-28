@@ -6,9 +6,6 @@ const KiB = 1024;
 // default config
 pub var default_config = zconfig.ZbootConfig{
     .magic = zconfig.ZBOOT_CONFIG_MAGIC,
-    .chipflash = .{
-        .size = 1024 * KiB,
-    },
     .uart = zconfig.UartConfig{
         .enable = true,
         .tx = .{ 'P', 'A', '9', 0, 0, 0, 0, 0 },

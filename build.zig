@@ -2,9 +2,9 @@ const std = @import("std");
 
 const stm32f4 = std.zig.CrossTarget{
     .cpu_arch = .thumb,
-    .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m4 },
+    .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m3 },
     .os_tag = .freestanding,
-    .abi = .eabihf,
+    .abi = .eabi,
 };
 
 const examples = [_]Example{

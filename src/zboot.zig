@@ -15,10 +15,6 @@ pub var partition_num: u32 = 0;
 pub var default_partition: [Part.partition_table_MAX]Part.Partition = undefined;
 pub var default_zconfig: ZC.ZbootConfig = undefined;
 
-const JsonChipFlash = struct {
-    size: u32,
-};
-
 const JsonUart = struct {
     enable: u32,
     tx: []u8,
@@ -45,7 +41,6 @@ const JsonPartitionTable = struct {
 };
 
 const JsonConfig = struct {
-    chipflash: JsonChipFlash,
     uart: JsonUart,
     spiflash: JsonSpiFlash,
     partition_table: JsonPartitionTable,
@@ -157,11 +152,6 @@ pub fn json_parse() !void {
     const root = try std.json.parseFromSlice(JsonConfig, allocator, buf[0..size], .{ .allocate = .alloc_always });
 
     const json_config = root.value;
-    // parse chipflash config
-    if (Debug) {
-        std.debug.print("chipflash size:{d}\n", .{json_config.chipflash.size});
-    }
-    default_zconfig.chipflash.size = json_config.chipflash.size * KiB;
 
     // parse uart config
     if (Debug) {
