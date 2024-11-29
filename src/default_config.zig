@@ -4,7 +4,7 @@ const fal = @import("platform/fal/fal.zig");
 const KiB = 1024;
 
 // default config
-pub var default_config = zconfig.ZbootConfig{
+pub const default_config = zconfig.ZbootConfig{
     .magic = zconfig.ZBOOT_CONFIG_MAGIC,
     .uart = zconfig.UartConfig{
         .enable = true,
@@ -42,3 +42,18 @@ pub const default_partition: [3]fal.partition.Partition = .{ .{
     .len = 0x00020000,
     .reserved = 0,
 } };
+
+comptime {
+    const dc_export_opts = .{
+        .name = "default_config",
+        .section = "dconfig",
+        .linkage = .strong,
+    };
+    @export(default_config, dc_export_opts);
+    const df_export_opts = .{
+        .name = "default_partition",
+        .section = "fal",
+        .linkage = .strong,
+    };
+    @export(default_partition, df_export_opts);
+}

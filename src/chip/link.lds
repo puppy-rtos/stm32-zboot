@@ -30,8 +30,9 @@ SECTIONS
     microzig_data_start = .;
     *(.rodata*)
     *(.data*)
-    KEEP(*(fal))
     microzig_data_end = .;
+    KEEP(*(dconfig))
+    KEEP(*(fal))
   } > ram0 AT> flash0
 
   .bss (NOLOAD) :

@@ -82,26 +82,64 @@ pub fn main() !void {
     var buf_write = std.io.bufferedWriter(bin_file.writer());
     var out_stream = buf_write.writer();
 
-    var out_file: std.fs.File = undefined;
     var read_buf: [BUF_SIZE]u8 = undefined;
-    const out_buf: [BUF_SIZE]u8 = undefined;
-    _ = out_buf;
+    var magic_buf: [4]u8 = undefined;
     var offset: usize = 0;
     var write_offset: usize = 0;
+    var magic_offset: usize = 0;
+
+    // find magic word 'Z' 'B' 'O' 'T' 0x544F425A from tail of bin file
+    const file_size = try file.getEndPos();
+    if (Debug) {
+        std.debug.print("file size: {d}\n", .{file_size});
+    }
+    try file.seekFromEnd(-@sizeOf(ZC.ZbootConfig));
+    offset = file_size - @sizeOf(ZC.ZbootConfig);
+    while (offset > 0) {
+        const size = try file.readAll(&magic_buf);
+        if (Debug) {
+            std.debug.print("read: {d}\n", .{size});
+        }
+        if (size != 4) {
+            std.debug.print("read file error: {d}\n", .{size});
+            break;
+        }
+        if (magic_buf[0] == 0x5A and magic_buf[1] == 0x42 and magic_buf[2] == 0x4F and magic_buf[3] == 0x54) {
+            magic_offset = offset;
+            break;
+        }
+        try file.seekBy(-5);
+        offset -= 1;
+    }
+    if (magic_offset == 0) {
+        std.debug.print("can't find ZBOOT_CONFIG_MAGIC\n", .{});
+        return;
+    }
+
+    try file.seekTo(0);
+    offset = 0;
 
     // read bin file and write to another file
     while (true) {
-        const size = try in_stream.readAll(&read_buf);
+        var size = try in_stream.readAll(&read_buf);
         offset += size;
 
         if (Debug) {
             std.debug.print("read: {d}, offset:{x}\n", .{ size, offset });
         }
+
+        if (offset > magic_offset) {
+            size = size - (offset - magic_offset);
+        }
+
         const ret = try out_stream.write(read_buf[0..size]);
         write_offset += ret;
 
         if (Debug) {
             std.debug.print("write: {d}, offset:{x}\n", .{ ret, write_offset });
+        }
+        if (offset >= magic_offset) {
+            break;
         }
         if (ret != size) {
             std.debug.print("write file error: {}\n", .{ret});
@@ -133,7 +171,6 @@ pub fn main() !void {
     }
     try buf_write.flush();
     bin_file.close();
-    out_file.close();
 }
 
 pub fn json_parse() !void {

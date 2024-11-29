@@ -26,17 +26,6 @@ const FalPartition = struct {
 };
 pub var partition_table: FalPartition = .{ .num = 0, .partition = undefined };
 
-const dconfig = @import("../../default_config.zig");
-
-comptime {
-    const export_opts = .{
-        .name = "default_partition",
-        .section = "fal",
-        .linkage = .strong,
-    };
-    @export(dconfig.default_partition, export_opts);
-}
-
 pub fn find(name: []const u8) ?*const Partition {
     var i: u32 = 0;
     while (i < partition_table.num) : (i += 1) {

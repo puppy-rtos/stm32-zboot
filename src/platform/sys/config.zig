@@ -1,6 +1,6 @@
 pub const PIN_NAME_MAX = 4;
 // magic num
-pub const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
+pub const ZBOOT_CONFIG_MAGIC = 0x544F425A; // TOBZ --> ZBOT
 
 pub const UartConfig = extern struct {
     enable: bool,
@@ -24,18 +24,20 @@ pub const ZbootConfig = extern struct {
 };
 
 const dconfig = @import("../../default_config.zig");
+var zboot_config: *const ZbootConfig = undefined;
 
 // probe config from rom end
 pub fn probe_extconfig(addr: u32) void {
     const extconfig: *ZbootConfig = @ptrFromInt(addr);
     if (extconfig.magic != ZBOOT_CONFIG_MAGIC) {
+        zboot_config = &dconfig.default_config;
         return;
     }
     // copy config
-    dconfig.default_config = extconfig.*;
+    zboot_config = extconfig;
 }
 
 // get config
-pub fn get_config() *ZbootConfig {
-    return &dconfig.default_config;
+pub fn get_config() *const ZbootConfig {
+    return zboot_config;
 }
