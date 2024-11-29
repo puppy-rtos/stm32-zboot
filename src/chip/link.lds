@@ -19,7 +19,6 @@ SECTIONS
   {
     KEEP(*(microzig_flash_start))
     *(.text*)
-    KEEP(*(fal))
   } > flash0
 
   .ARM.exidx : {
@@ -31,6 +30,7 @@ SECTIONS
     microzig_data_start = .;
     *(.rodata*)
     *(.data*)
+    KEEP(*(fal))
     microzig_data_end = .;
   } > ram0 AT> flash0
 

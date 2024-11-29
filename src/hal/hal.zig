@@ -63,6 +63,7 @@ const IDCODE = mmio.Mmio(packed struct(u32) {
 });
 
 pub var chip_series: ChipSeriseType = undefined;
+pub var chip_flash_size: u32 = undefined;
 
 pub fn init() void {
     const core_type: CoreType = @enumFromInt(cpu.peripherals.SCB.CPUID.read().PARTNO);
@@ -86,6 +87,7 @@ pub fn init() void {
                 dev_id == @intFromEnum(F4_PID.STM32F413xx_423xx))
             {
                 chip_series = ChipSeriseType.STM32F4;
+                chip_flash_size = @as(*u16, @ptrFromInt(0x1FFF7A22)).*;
             } else if (dev_id == @intFromEnum(L4_PID.STM32L412xx_422xx) or
                 dev_id == @intFromEnum(L4_PID.STM32L43xxx_44xxx) or
                 dev_id == @intFromEnum(L4_PID.STM32L45xxx_46xxx) or
@@ -95,6 +97,7 @@ pub fn init() void {
                 dev_id == @intFromEnum(L4_PID.STM32L4P5xx_Q5xx))
             {
                 chip_series = ChipSeriseType.STM32L4;
+                chip_flash_size = @as(*u16, @ptrFromInt(0x1FFF75E0)).*;
             }
         },
         CoreType.M7 => {
@@ -106,6 +109,7 @@ pub fn init() void {
                 dev_id == @intFromEnum(H7_PID.STM32H7A3xx_B3xx))
             {
                 chip_series = ChipSeriseType.STM32H7;
+                chip_flash_size = @as(*u16, @ptrFromInt(0x1FF1E880)).*;
             }
         },
         CoreType.M33 => {},
@@ -114,4 +118,5 @@ pub fn init() void {
     }
     clock.init();
     flash.init();
+    flash.chip_flash.len = chip_flash_size * 1024;
 }

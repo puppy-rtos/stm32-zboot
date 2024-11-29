@@ -3,6 +3,7 @@ const cpu = @import("../cortex-m.zig");
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");
+const flash_size = @import("../../hal/hal.zig").chip_flash_size;
 
 const Debug = false;
 
@@ -11,8 +12,6 @@ const FLASH_KEYR_KEY2 = 0xcdef89ab;
 
 const FLASH_OPTKEYR_KEY1 = 0x08192a3b;
 const FLASH_OPTKEYR_KEY2 = 0x4c5d6e7f;
-
-const flash_size = @as(*u16, @ptrFromInt(0x1FFF7A22));
 
 // unlock stm32 flash
 pub fn flash_unlock() void {

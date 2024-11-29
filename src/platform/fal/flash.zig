@@ -45,15 +45,7 @@ pub const Flash_Dev = struct {
     // ops for flash
     ops: *const FlashOps,
     pub fn init(self: *const @This()) FlashErr {
-        sys.debug.print("Flash[{s}]:init..\r\n", .{self.name}) catch {};
-        var offset: u32 = 0;
-        for (self.blocks, 0..) |b, i| {
-            if (b.size == 0 or b.count == 0) {
-                break;
-            }
-            sys.debug.print("Flash[{s}]:block[{d}]{x:0>8}-{x:0>8}:size:0x{x:0>6},count:{d:0>2}\r\n", .{ self.name, i, self.start + offset, self.start + offset + b.size * b.count, b.size, b.count }) catch {};
-            offset = offset + b.size * b.count;
-        }
+        sys.debug.print("Flash[{s}]:size:0x{x}\r\n", .{ self.name, self.len }) catch {};
         if (self.ops.init) |init_fn| {
             return init_fn(self);
         }

@@ -1,4 +1,4 @@
-pub const PIN_NAME_MAX = 8;
+pub const PIN_NAME_MAX = 4;
 // magic num
 pub const ZBOOT_CONFIG_MAGIC = 0x5A424F54; // ZBOT
 

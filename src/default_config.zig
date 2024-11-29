@@ -8,14 +8,14 @@ pub var default_config = zconfig.ZbootConfig{
     .magic = zconfig.ZBOOT_CONFIG_MAGIC,
     .uart = zconfig.UartConfig{
         .enable = true,
-        .tx = .{ 'P', 'A', '9', 0, 0, 0, 0, 0 },
+        .tx = .{ 'P', 'A', '9', 0 },
     },
     .spiflash = zconfig.SpiFlashConfig{
         .enable = true,
-        .cs = .{ 'P', 'B', '1', '2', 0, 0, 0, 0 },
-        .sck = .{ 'P', 'B', '1', '3', 0, 0, 0, 0 },
-        .mosi = .{ 'P', 'C', '3', 0, 0, 0, 0, 0 },
-        .miso = .{ 'P', 'C', '2', 0, 0, 0, 0, 0 },
+        .cs = .{ 'P', 'B', '1', '2' },
+        .sck = .{ 'P', 'B', '1', '3' },
+        .mosi = .{ 'P', 'C', '3', 0 },
+        .miso = .{ 'P', 'C', '2', 0 },
     },
 };
 

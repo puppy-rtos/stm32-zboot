@@ -3,6 +3,7 @@ const cpu = @import("../cortex-m.zig");
 
 const Flash = @import("../../platform/fal/flash.zig");
 const sys = @import("../../platform/sys.zig");
+const hal = @import("../../hal/hal.zig");
 
 const Debug = false;
 
@@ -11,8 +12,6 @@ const FLASH_KEYR_KEY2 = 0xcdef89ab;
 
 const FLASH_OPTKEYR_KEY1 = 0x08192a3b;
 const FLASH_OPTKEYR_KEY2 = 0x4c5d6e7f;
-
-const flash_size = @as(*u16, @ptrFromInt(0x1FFF75E0));
 
 // unlock stm32 flash
 pub fn flash_unlock() void {
@@ -51,7 +50,7 @@ pub fn flash_program_64(address: u32, data: u64) void {
 
 var SECTER_PER_BANK: u32 = 1024 * 1024 / 2 / 2048; // l496 1M flash, l475 512K flash
 pub fn flash_init(self: *const Flash.Flash_Dev) Flash.FlashErr {
-    SECTER_PER_BANK = flash_size.* * 1024 / self.blocks[0].size / 2;
+    SECTER_PER_BANK = hal.chip_flash_size * 1024 / self.blocks[0].size / 2;
     if (Debug) {
         sys.debug.print("chipflash size:0x{x}, SecterPerBank:0x{x}\r\n", .{ sys.zconfig.get_config().chipflash.size, SECTER_PER_BANK }) catch {};
     }
