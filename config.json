@@ -11,7 +11,6 @@
             "miso": "PC2"
         },
         "partition_table": {
-            "num": 3,
             "patition": [
                 {
                     "name": "boot",

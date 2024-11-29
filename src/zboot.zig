@@ -36,7 +36,6 @@ const JsonPartition = struct {
 };
 
 const JsonPartitionTable = struct {
-    num: u32,
     patition: []JsonPartition,
 };
 
@@ -188,28 +187,28 @@ pub fn json_parse() !void {
     mem.copyForwards(u8, &default_zconfig.spiflash.miso, json_config.spiflash.miso[0..json_config.spiflash.miso.len]);
 
     // parse fal partition config
-    partition_num = json_config.partition_table.num;
-    var i: u32 = 0;
-    while (i < json_config.partition_table.num) : (i += 1) {
+    for (json_config.partition_table.patition, 0..) |patition, i| {
         if (Debug) {
-            std.debug.print("config.patition[{d}].name: {s}\n", .{ i, json_config.partition_table.patition[i].name });
-            std.debug.print("config.patition[{d}].flash_name: {s}\n", .{ i, json_config.partition_table.patition[i].flash_name });
-            std.debug.print("config.patition[{d}].offset: {d}\n", .{ i, json_config.partition_table.patition[i].offset });
-            std.debug.print("config.patition[{d}].len: {d}\n", .{ i, json_config.partition_table.patition[i].len });
+            std.debug.print("config.patition[{d}].name: {s}\n", .{ i, patition.name });
+            std.debug.print("config.patition[{d}].flash_name: {s}\n", .{ i, patition.flash_name });
+            std.debug.print("config.patition[{d}].offset: {d}\n", .{ i, patition.offset });
+            std.debug.print("config.patition[{d}].len: {d}\n", .{ i, patition.len });
         }
-        if (json_config.partition_table.patition[i].flash_name.len > Part.FAL_DEV_NAME_MAX) {
+        if (patition.flash_name.len > Part.FAL_DEV_NAME_MAX) {
             std.debug.print("flash_name is too long\n", .{});
             return;
         }
-        if (json_config.partition_table.patition[i].name.len > Part.FAL_DEV_NAME_MAX) {
+        if (patition.name.len > Part.FAL_DEV_NAME_MAX) {
             std.debug.print("name is too long\n", .{});
             return;
         }
         default_partition[i].magic_word = Part.FAL_MAGIC_WORD;
-        mem.copyForwards(u8, &default_partition[i].name, json_config.partition_table.patition[i].name[0..json_config.partition_table.patition[i].name.len]);
-        mem.copyForwards(u8, &default_partition[i].flash_name, json_config.partition_table.patition[i].flash_name[0..json_config.partition_table.patition[i].flash_name.len]);
-        default_partition[i].offset = json_config.partition_table.patition[i].offset * KiB;
-        default_partition[i].len = json_config.partition_table.patition[i].len * KiB;
+        mem.copyForwards(u8, &default_partition[i].name, patition.name[0..patition.name.len]);
+        mem.copyForwards(u8, &default_partition[i].flash_name, patition.flash_name[0..patition.flash_name.len]);
+        default_partition[i].offset = patition.offset * KiB;
+        default_partition[i].len = patition.len * KiB;
         default_partition[i].reserved = 0;
+
+        partition_num = @intCast(i + 1);
     }
 }
