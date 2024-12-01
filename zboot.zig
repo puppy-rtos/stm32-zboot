@@ -12,6 +12,7 @@ const ZC = @import("src/platform/sys.zig").zconfig;
 const Part = @import("src/platform/fal/fal.zig").partition;
 
 const stm32zboot = @embedFile("zig-out/bin/stm32-zboot.bin");
+const configjson = @embedFile("config.json");
 
 pub var partition_num: u32 = 0;
 pub var default_partition: [Part.partition_table_MAX]Part.Partition = undefined;
@@ -49,6 +50,13 @@ const JsonConfig = struct {
 
 const BUF_SIZE = 1024;
 
+fn help() void {
+    std.debug.print("Usage: \n", .{});
+    std.debug.print("  -zboot boot: gen stm32-zboot.bin [and config.json] \n", .{});
+    std.debug.print("  -zboot rbl <xxx.bin>: tar xxx.bin to xxx.rbl \n", .{});
+    std.debug.print("  -zboot allbin: tar stm32-zboot|app|[swap] to all.bin \n", .{});
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -63,11 +71,49 @@ pub fn main() !void {
 
     var input_file: []u8 = undefined;
     if (args.len > 1) {
-        input_file = args[1];
+        // if argv[1] == boot gen stm32-zboot.bin
+        if (mem.eql(u8, args[1], "boot")) {
+            // if config.json not exist, gen config.json
+            std.fs.cwd().access("config.json", .{ .mode = .read_only }) catch {
+                std.debug.print("=> gen config.json\n", .{});
+                try gen_configjson();
+            };
+            std.debug.print("=> gen stm32-zboot.bin\n", .{});
+            try gen_boot();
+            return;
+        } else if (mem.eql(u8, args[1], "rbl")) {
+            if (args.len < 3) {
+                help();
+                return;
+            }
+            input_file = args[2];
+            // gen_rbl(input_file);
+            return;
+        } else if (mem.eql(u8, args[1], "allbin")) {
+            // gen_allbin();
+            return;
+        }
     } else {
-        std.debug.print("{s}\n", .{"Usage: ./zboot config.json"});
+        help();
         return;
     }
+}
+
+fn gen_configjson() !void {
+    const bin_file = try std.fs.cwd().createFile("./config.json", .{});
+
+    var buf_write = std.io.bufferedWriter(bin_file.writer());
+    var out_stream = buf_write.writer();
+
+    _ = out_stream.write(configjson) catch {
+        std.debug.print("write file error\n", .{});
+        return;
+    };
+    try buf_write.flush();
+    bin_file.close();
+}
+
+fn gen_boot() !void {
     const bin_file = try std.fs.cwd().createFile("./stm32-zboot.bin", .{});
 
     var buf_write = std.io.bufferedWriter(bin_file.writer());
@@ -95,7 +141,7 @@ pub fn main() !void {
     };
 
     // parse json file
-    try json_parse(input_file);
+    try json_parse("config.json");
     // write zbootconfig data
     default_zconfig.magic = ZC.ZBOOT_CONFIG_MAGIC;
     const slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
