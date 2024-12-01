@@ -10,6 +10,7 @@ const KiB = 1024;
 
 const ZC = @import("src/platform/sys.zig").zconfig;
 const Part = @import("src/platform/fal/fal.zig").partition;
+const OTA = @import("src/platform/ota/ota.zig");
 
 const stm32zboot = @embedFile("zig-out/bin/stm32-zboot.bin");
 const configjson = @embedFile("config.json");
@@ -53,7 +54,7 @@ const BUF_SIZE = 1024;
 fn help() void {
     std.debug.print("Usage: \n", .{});
     std.debug.print("  -zboot boot: gen stm32-zboot.bin [and config.json] \n", .{});
-    std.debug.print("  -zboot rbl <xxx.bin>: tar xxx.bin to xxx.rbl \n", .{});
+    std.debug.print("  -zboot rbl <xxx.bin> <version>: tar xxx.bin to xxx.rbl \n", .{});
     std.debug.print("  -zboot allbin: tar stm32-zboot|app|[swap] to all.bin \n", .{});
 }
 
@@ -74,7 +75,7 @@ pub fn main() !void {
         // if argv[1] == boot gen stm32-zboot.bin
         if (mem.eql(u8, args[1], "boot")) {
             // if config.json not exist, gen config.json
-            std.fs.cwd().access("config.json", .{ .mode = .read_only }) catch {
+            std.fs.cwd().access("config.json", .{}) catch {
                 std.debug.print("=> gen config.json\n", .{});
                 try gen_configjson();
             };
@@ -87,7 +88,7 @@ pub fn main() !void {
                 return;
             }
             input_file = args[2];
-            // gen_rbl(input_file);
+            try gen_rbl(input_file, args[3]);
             return;
         } else if (mem.eql(u8, args[1], "allbin")) {
             // gen_allbin();
@@ -156,6 +157,102 @@ fn gen_boot() !void {
         std.debug.print("write file error\n", .{});
         return;
     };
+    try buf_write.flush();
+    bin_file.close();
+}
+
+fn gen_rbl(input_file: []u8, version: []u8) !void {
+    var file = try std.fs.cwd().openFile(input_file, .{});
+    defer file.close();
+
+    // ready ota header
+    var fw_info: OTA.Ota_FW_Info = .{
+        .magic = .{ 'R', 'B', 'L', 0 },
+        .algo = .NONE,
+        .algo2 = .NONE,
+        .time_stamp = 0,
+        .name = .{ 'a', 'p', 'p' } ++ .{0} ** 13,
+        .version = .{0} ** 24,
+        .sn = .{'0'} ** 24,
+        .body_crc = 0,
+        .hash_code = 0,
+        .raw_size = 0,
+        .pkg_size = 0,
+        .hdr_crc = 0,
+    };
+
+    const file_size = try file.getEndPos();
+    mem.copyForwards(u8, &fw_info.version, version[0..version.len]);
+    fw_info.raw_size = @intCast(file_size);
+    fw_info.pkg_size = @intCast(file_size + @sizeOf(OTA.Ota_FW_Info));
+    fw_info.time_stamp = @intCast(std.time.milliTimestamp());
+
+    // body crc
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+
+    var buf: [1024]u8 = undefined;
+    var crc: u32 = 0;
+    var hash: u32 = OTA.ZBOOT_HASH_FNV_SEED;
+
+    while (true) {
+        const size = try in_stream.read(buf[0..]);
+        crc = OTA.crc32(crc, buf[0..size]);
+        hash = OTA.calc_hash(hash, buf[0..size]);
+        if (size < 1024) {
+            break;
+        }
+    }
+    fw_info.body_crc = crc;
+    fw_info.hash_code = hash;
+    fw_info.hdr_crc = OTA.crc32(0, @as([*]u8, @ptrCast((&fw_info)))[0..(@sizeOf(OTA.Ota_FW_Info) - 4)]);
+
+    // write rbl file
+    try file.seekTo(0);
+    var file_name_buf: [512]u8 = undefined;
+    const file_name = try std.fmt.bufPrint(&file_name_buf, "{s}.rbl", .{input_file});
+    std.debug.print("=> {s}\n", .{file_name});
+    const bin_file = try std.fs.cwd().createFile(file_name, .{});
+
+    var buf_write = std.io.bufferedWriter(bin_file.writer());
+    var out_stream = buf_write.writer();
+
+    var read_buf: [BUF_SIZE]u8 = undefined;
+    var offset: usize = 0;
+    var write_offset: usize = 0;
+
+    // write ota header
+    const slice_ota = @as([*]u8, @ptrCast((&fw_info)))[0..(@sizeOf(OTA.Ota_FW_Info))];
+    _ = out_stream.write(slice_ota) catch {
+        std.debug.print("write file error\n", .{});
+        return;
+    };
+
+    // read bin file and write to another file
+    while (true) {
+        const size = try in_stream.readAll(&read_buf);
+        offset += size;
+
+        if (Debug) {
+            std.debug.print("read: {d}, offset:{x}\n", .{ size, offset });
+        }
+
+        const ret = try out_stream.write(read_buf[0..size]);
+        write_offset += ret;
+
+        if (Debug) {
+            std.debug.print("write: {d}, offset:{x}\n", .{ ret, write_offset });
+        }
+        if (ret != size) {
+            std.debug.print("write file error: {}\n", .{ret});
+            return;
+        }
+        if (size < BUF_SIZE) {
+            try buf_write.flush();
+            break;
+        }
+    }
+
     try buf_write.flush();
     bin_file.close();
 }

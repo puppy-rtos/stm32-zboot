@@ -125,7 +125,7 @@ pub fn calc_hash(hash_input: u32, buf: []const u8) u32 {
     return hash;
 }
 
-const ZBOOT_HASH_FNV_SEED: u32 = 0x811C9DC5;
+pub const ZBOOT_HASH_FNV_SEED: u32 = 0x811C9DC5;
 
 // check partition fw hash
 fn checkHash(name: []const u8) bool {
@@ -140,7 +140,7 @@ fn checkHash(name: []const u8) bool {
         return false;
     }
     const len = ota_fw_info.?.raw_size;
-    // check body_crc
+    // check hash_code
     var hash: u32 = ZBOOT_HASH_FNV_SEED;
     while (offset < len) : (offset += 1024) {
         const read_size = len - offset;
