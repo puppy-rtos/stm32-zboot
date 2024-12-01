@@ -8,8 +8,10 @@ const json = std.json;
 const Debug = false;
 const KiB = 1024;
 
-const ZC = @import("platform/sys.zig").zconfig;
-const Part = @import("platform/fal/fal.zig").partition;
+const ZC = @import("src/platform/sys.zig").zconfig;
+const Part = @import("src/platform/fal/fal.zig").partition;
+
+const stm32zboot = @embedFile("zig-out/bin/stm32-zboot.bin");
 
 pub var partition_num: u32 = 0;
 pub var default_partition: [Part.partition_table_MAX]Part.Partition = undefined;
@@ -63,52 +65,23 @@ pub fn main() !void {
     if (args.len > 1) {
         input_file = args[1];
     } else {
-        std.debug.print("{s}\n", .{"Usage: ./zboot xxx.bin"});
+        std.debug.print("{s}\n", .{"Usage: ./zboot config.json"});
         return;
     }
-    var file = try std.fs.cwd().openFile(input_file, .{});
-    defer file.close();
-
-    //open file and write bin data to rtthread.bin
-
-    var file_name_buf: [512]u8 = undefined;
-    const file_name = try std.fmt.bufPrint(&file_name_buf, "{s}_singed.bin", .{input_file});
-    std.debug.print("=> {s}\n", .{file_name});
-    const bin_file = try std.fs.cwd().createFile(file_name, .{});
-
-    var buf_reader = std.io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
+    const bin_file = try std.fs.cwd().createFile("./stm32-zboot.bin", .{});
 
     var buf_write = std.io.bufferedWriter(bin_file.writer());
     var out_stream = buf_write.writer();
 
-    var read_buf: [BUF_SIZE]u8 = undefined;
-    var magic_buf: [4]u8 = undefined;
-    var offset: usize = 0;
-    var write_offset: usize = 0;
-    var magic_offset: usize = 0;
-
     // find magic word 'Z' 'B' 'O' 'T' 0x544F425A from tail of bin file
-    const file_size = try file.getEndPos();
-    if (Debug) {
-        std.debug.print("file size: {d}\n", .{file_size});
-    }
-    try file.seekFromEnd(-@sizeOf(ZC.ZbootConfig));
-    offset = file_size - @sizeOf(ZC.ZbootConfig);
+    var magic_offset: usize = 0;
+    var offset = stm32zboot.len - @sizeOf(ZC.ZbootConfig);
     while (offset > 0) {
-        const size = try file.readAll(&magic_buf);
-        if (Debug) {
-            std.debug.print("read: {d}\n", .{size});
-        }
-        if (size != 4) {
-            std.debug.print("read file error: {d}\n", .{size});
-            break;
-        }
+        const magic_buf = stm32zboot[offset..(offset + 4)];
         if (magic_buf[0] == 0x5A and magic_buf[1] == 0x42 and magic_buf[2] == 0x4F and magic_buf[3] == 0x54) {
             magic_offset = offset;
             break;
         }
-        try file.seekBy(-5);
         offset -= 1;
     }
     if (magic_offset == 0) {
@@ -116,67 +89,35 @@ pub fn main() !void {
         return;
     }
 
-    try file.seekTo(0);
-    offset = 0;
+    _ = out_stream.write(stm32zboot[0..magic_offset]) catch {
+        std.debug.print("write file error\n", .{});
+        return;
+    };
 
-    // read bin file and write to another file
-    while (true) {
-        var size = try in_stream.readAll(&read_buf);
-        offset += size;
-
-        if (Debug) {
-            std.debug.print("read: {d}, offset:{x}\n", .{ size, offset });
-        }
-
-        if (offset > magic_offset) {
-            size = size - (offset - magic_offset);
-        }
-
-        const ret = try out_stream.write(read_buf[0..size]);
-        write_offset += ret;
-
-        if (Debug) {
-            std.debug.print("write: {d}, offset:{x}\n", .{ ret, write_offset });
-        }
-        if (offset >= magic_offset) {
-            break;
-        }
-        if (ret != size) {
-            std.debug.print("write file error: {}\n", .{ret});
-            return;
-        }
-        if (size < BUF_SIZE) {
-            try buf_write.flush();
-            break;
-        }
-    }
     // parse json file
-    try json_parse();
+    try json_parse(input_file);
     // write zbootconfig data
     default_zconfig.magic = ZC.ZBOOT_CONFIG_MAGIC;
     const slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
-    const ret_uart = try out_stream.write(slice_config);
-    if (ret_uart != slice_config.len) {
-        std.debug.print("write file error: {d}\n", .{ret_uart});
+    _ = out_stream.write(slice_config) catch {
+        std.debug.print("write file error\n", .{});
         return;
-    }
+    };
 
     // write partition data
     const slice = @as([*]u8, @ptrCast((&default_partition)))[0..(@sizeOf(Part.Partition) * partition_num)];
-
-    const ret = try out_stream.write(slice);
-    if (ret != slice.len) {
-        std.debug.print("write file error: {d}\n", .{ret});
+    _ = out_stream.write(slice) catch {
+        std.debug.print("write file error\n", .{});
         return;
-    }
+    };
     try buf_write.flush();
     bin_file.close();
 }
 
-pub fn json_parse() !void {
+pub fn json_parse(config_file: []const u8) !void {
     const allocator = std.heap.page_allocator;
     var buf: [4096]u8 = undefined;
-    var file = try std.fs.cwd().openFile("config.json", .{});
+    var file = try std.fs.cwd().openFile(config_file, .{});
     defer file.close();
 
     const size = try file.readAll(buf[0..]);

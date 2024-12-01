@@ -51,7 +51,6 @@ pub fn init(start_offset: u32) void {
         _ = flash.read(partition_start, slice);
         if (magic_word == FAL_MAGIC_WORD) {
             part_is_find = true;
-            sys.debug.print("partition table find at 0x{x}\r\n", .{partition_start}) catch {};
             break;
         }
     }

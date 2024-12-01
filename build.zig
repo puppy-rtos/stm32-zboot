@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) void {
         .name = "zboot",
         .optimize = .ReleaseSmall,
         .target = b.host,
-        .root_source_file = b.path("src/zboot.zig"),
+        .root_source_file = b.path("zboot.zig"),
     });
 
     b.installArtifact(zboot_tool);
