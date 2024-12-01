@@ -39,7 +39,4 @@ zig build
 
 ### Usage
 
-```
-.\zig-out\bin\zboot.exe .\zig-out\firmware\stm32-zboot.bin
-```
-
+Run the `zboot config.json` command to generate stm32-zboot.bin in the current directory
