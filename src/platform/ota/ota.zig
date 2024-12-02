@@ -89,7 +89,7 @@ pub fn crc32(crc_input: u32, buf: []const u8) u32 {
 // ota check: check ota header
 pub fn get_fw_info(part: *const fal.partition.Partition, tail: bool) ?Ota_FW_Info {
     var ota_fw_info: Ota_FW_Info = undefined;
-    var slice_info = @as([*]u8, @ptrCast((&ota_fw_info)))[0..(@sizeOf(Ota_FW_Info))];
+    var slice_info = @as([*]u8, @ptrCast(&ota_fw_info))[0..(@sizeOf(Ota_FW_Info))];
 
     if (tail) {
         fal.partition.read(part, part.len - @sizeOf(Ota_FW_Info), slice_info[0..]);

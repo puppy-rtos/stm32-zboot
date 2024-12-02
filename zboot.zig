@@ -184,7 +184,7 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
     const file_size = try file.getEndPos();
     mem.copyForwards(u8, &fw_info.version, version[0..version.len]);
     fw_info.raw_size = @intCast(file_size);
-    fw_info.pkg_size = @intCast(file_size + @sizeOf(OTA.Ota_FW_Info));
+    fw_info.pkg_size = @intCast(file_size);
     fw_info.time_stamp = @intCast(std.time.milliTimestamp());
 
     // body crc
@@ -205,7 +205,11 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
     }
     fw_info.body_crc = crc;
     fw_info.hash_code = hash;
-    fw_info.hdr_crc = OTA.crc32(0, @as([*]u8, @ptrCast((&fw_info)))[0..(@sizeOf(OTA.Ota_FW_Info) - 4)]);
+    fw_info.hdr_crc = OTA.crc32(0, @as([*]u8, @ptrCast(&fw_info))[0..(@sizeOf(OTA.Ota_FW_Info) - @sizeOf(u32))]);
+    if (Debug) {
+        std.debug.print("crc: {x}, hash: {x}\n", .{ crc, hash });
+        std.debug.print("hdr_crc: {x}\n", .{fw_info.hdr_crc});
+    }
 
     // write rbl file
     try file.seekTo(0);
