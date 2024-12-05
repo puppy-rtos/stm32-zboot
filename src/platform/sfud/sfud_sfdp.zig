@@ -34,7 +34,16 @@ pub fn check_sfdp_header(flash: *const SfudFlash) bool {
     if (read_sfdp_data(flash, 0, slice_header[0..])) {
         // check SFDP header
         if (header.signature != sfdp_signature) {
-            // sys.debug.print("SFDP header error\r\n", .{}) catch {};
+            // reset flash and try agine.
+            _ = reset_flash(flash);
+            hal.clock.delay_ms(10);
+            if (read_sfdp_data(flash, 0, slice_header[0..])) {
+                // check SFDP header
+                if (header.signature != sfdp_signature) {
+                    return false;
+                }
+                return true;
+            }
             return false;
         }
     }
@@ -76,6 +85,18 @@ pub fn get_basic_para(flash: *SfudFlash) bool {
     }
     flash.erase_gran = std.math.shl(u32, 1, table.DWORD8.erase1_gran);
     flash.erase_gran_cmd = table.DWORD8.erase1_gran_cmd;
+    return true;
+}
+
+fn reset_flash(flash: *const SfudFlash) bool {
+    const cmd = [_]u8{ @intFromEnum(SfudCmd.EnableReset), 0 };
+    if (!flash.spi.wr(cmd[0..], null)) {
+        return false;
+    }
+    const cmd1 = [_]u8{ @intFromEnum(SfudCmd.Reset), 0 };
+    if (!flash.spi.wr(cmd1[0..], null)) {
+        return false;
+    }
     return true;
 }
 

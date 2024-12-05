@@ -68,9 +68,9 @@ export fn main() noreturn {
     fal.init();
 
     // ota check app crc
-    if (ota.checkFW("app") == false) {
-        sys.debug.print("app check failed\r\n", .{}) catch {};
-    }
+    // if (ota.checkFW("app") == false) {
+    //     sys.debug.print("app check failed\r\n", .{}) catch {};
+    // }
 
     try ota.swap();
     jump_app();

@@ -53,9 +53,9 @@ const BUF_SIZE = 1024;
 
 fn help() void {
     std.debug.print("Usage: \n", .{});
-    std.debug.print("  -zboot boot: gen stm32-zboot.bin [and config.json] \n", .{});
-    std.debug.print("  -zboot rbl <xxx.bin> <version>: tar xxx.bin to xxx.rbl \n", .{});
-    std.debug.print("  -zboot allbin: tar stm32-zboot|app|[swap] to all.bin \n", .{});
+    std.debug.print("  zboot boot: gen stm32-zboot.bin [config.json] \n", .{});
+    std.debug.print("  zboot rbl <xxx.bin> <version>: tar xxx.bin to xxx.rbl \n", .{});
+    // std.debug.print("  zboot allbin: tar stm32-zboot|app|[swap] to all.bin \n", .{});
 }
 
 pub fn main() !void {
@@ -160,6 +160,8 @@ fn gen_boot() !void {
     try buf_write.flush();
     bin_file.close();
 }
+const FLZ_BUF_SIZE = 4096;
+const TEMP_FILE = "_crom_tmp.tmp";
 
 fn gen_rbl(input_file: []u8, version: []u8) !void {
     var file = try std.fs.cwd().openFile(input_file, .{});
@@ -168,7 +170,7 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
     // ready ota header
     var fw_info: OTA.Ota_FW_Info = .{
         .magic = .{ 'R', 'B', 'L', 0 },
-        .algo = .NONE,
+        .algo = .FASTLZ,
         .algo2 = .NONE,
         .time_stamp = 0,
         .name = .{ 'a', 'p', 'p' } ++ .{0} ** 13,
@@ -184,35 +186,57 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
     const file_size = try file.getEndPos();
     mem.copyForwards(u8, &fw_info.version, version[0..version.len]);
     fw_info.raw_size = @intCast(file_size);
-    fw_info.pkg_size = @intCast(file_size);
     fw_info.time_stamp = @intCast(std.time.milliTimestamp());
 
     // body crc
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
 
-    var buf: [1024]u8 = undefined;
+    var buf: [FLZ_BUF_SIZE]u8 = undefined;
     var crc: u32 = 0;
     var hash: u32 = OTA.ZBOOT_HASH_FNV_SEED;
 
+    const crom_file = try std.fs.cwd().createFile(TEMP_FILE, .{});
+
     while (true) {
         const size = try in_stream.read(buf[0..]);
-        crc = OTA.crc32(crc, buf[0..size]);
+        if (size == 0) {
+            break;
+        }
         hash = OTA.calc_hash(hash, buf[0..size]);
+        var crom_buf: [FLZ_BUF_SIZE + OTA.fastlz_buffer_padding(FLZ_BUF_SIZE)]u8 = undefined;
+        for (&crom_buf) |*b| {
+            b.* = 0;
+        }
+        const compress_size = OTA.fastlz1_compress(crom_buf[0..], buf[0..size]);
+        const buffer_hdr: [4]u8 = .{
+            @intCast(compress_size / (1 << 24)),
+            @intCast((compress_size % (1 << 24)) / (1 << 16)),
+            @intCast((compress_size % (1 << 16)) / (1 << 8)),
+            @intCast(compress_size % (1 << 8)),
+        };
+        _ = crom_file.writeAll(buffer_hdr[0..]) catch {
+            std.debug.print("write file error\n", .{});
+            return;
+        };
+        _ = crom_file.writeAll(crom_buf[0..compress_size]) catch {
+            std.debug.print("write crom file error\n", .{});
+            return;
+        };
+
+        crc = OTA.crc32(crc, buffer_hdr[0..]);
+        crc = OTA.crc32(crc, crom_buf[0..compress_size]);
         if (size < 1024) {
             break;
         }
     }
-    fw_info.body_crc = crc;
-    fw_info.hash_code = hash;
-    fw_info.hdr_crc = OTA.crc32(0, @as([*]u8, @ptrCast(&fw_info))[0..(@sizeOf(OTA.Ota_FW_Info) - @sizeOf(u32))]);
-    if (Debug) {
-        std.debug.print("crc: {x}, hash: {x}\n", .{ crc, hash });
-        std.debug.print("hdr_crc: {x}\n", .{fw_info.hdr_crc});
-    }
+    crom_file.close();
 
     // write rbl file
-    try file.seekTo(0);
+    file = try std.fs.cwd().openFile(TEMP_FILE, .{});
+    buf_reader = std.io.bufferedReader(file.reader());
+    in_stream = buf_reader.reader();
+
     var file_name_buf: [512]u8 = undefined;
     const file_name = try std.fmt.bufPrint(&file_name_buf, "{s}.rbl", .{input_file});
     std.debug.print("=> {s}\n", .{file_name});
@@ -226,6 +250,15 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
     var write_offset: usize = 0;
 
     // write ota header
+
+    fw_info.body_crc = crc;
+    fw_info.hash_code = hash;
+    fw_info.pkg_size = @intCast(try file.getEndPos());
+    fw_info.hdr_crc = OTA.crc32(0, @as([*]u8, @ptrCast(&fw_info))[0..(@sizeOf(OTA.Ota_FW_Info) - @sizeOf(u32))]);
+    if (Debug) {
+        std.debug.print("crc: {x}, hash: {x}\n", .{ crc, hash });
+        std.debug.print("hdr_crc: {x}\n", .{fw_info.hdr_crc});
+    }
     const slice_ota = @as([*]u8, @ptrCast((&fw_info)))[0..(@sizeOf(OTA.Ota_FW_Info))];
     _ = out_stream.write(slice_ota) catch {
         std.debug.print("write file error\n", .{});
@@ -240,7 +273,6 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
         if (Debug) {
             std.debug.print("read: {d}, offset:{x}\n", .{ size, offset });
         }
-
         const ret = try out_stream.write(read_buf[0..size]);
         write_offset += ret;
 
@@ -259,6 +291,8 @@ fn gen_rbl(input_file: []u8, version: []u8) !void {
 
     try buf_write.flush();
     bin_file.close();
+    // delete crom file
+    try std.fs.cwd().deleteFile(TEMP_FILE);
 }
 
 pub fn json_parse(config_file: []const u8) !void {

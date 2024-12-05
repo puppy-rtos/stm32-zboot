@@ -343,8 +343,6 @@ pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
     while (loop) {
         var len: u32 = ctrl >> 5;
         const ofs: u32 = std.math.shl(u32, (ctrl & 0b11111), 8);
-        // dump len and ofs
-        // std.debug.print("len:{d}, ofs:{d}\r\n", .{ len, ofs });
 
         if (ctrl >= 0b100000) {
             var refIdx: u32 = opIdx - ofs - 1;
@@ -394,5 +392,266 @@ pub fn fastlz1_decompress(output: []u8, input: []const u8) usize {
             }
         }
     }
+    return opIdx;
+}
+
+const MAX_COPY = 32;
+const MAX_LEN = 264; // 256 + 8
+const HASH_LOG = 13;
+const HASH_SIZE = (1 << HASH_LOG);
+const HASH_MASK = (HASH_SIZE - 1);
+const MAX_L1_DISTANCE = 8192;
+
+fn fastlz_readu16(p: []const u8) u16 {
+    return @as(u16, p[0]) | std.math.shl(u16, p[1], 8);
+}
+
+fn fastlz_hash(p: []const u8) u32 {
+    var v: u32 = fastlz_readu16(p);
+    v ^= (fastlz_readu16(p[1..]) ^ std.math.shr(u32, v, (16 - HASH_LOG)));
+    v &= HASH_MASK;
+    return v;
+}
+// The output buffer must be at least 5% larger than the input buffer and can not be smaller than 66 bytes.
+pub fn fastlz_buffer_padding(x: u32) u32 {
+    return (66 + (x) * 5 / 100);
+}
+
+pub fn fastlz1_compress(output: []u8, input: []const u8) usize {
+    var ipIdx: u32 = 0;
+    const ipBoundIdx = input.len - 2;
+    const ipLimitIdx = input.len - 12;
+    var opIdx: u32 = 0;
+    var copy: u32 = 2;
+
+    var htab: [HASH_SIZE]u32 = undefined;
+    var hval: u32 = undefined;
+
+    if (input.len < 4) {
+        if (input.len > 0) {
+            output[0] = @intCast(input.len - 1);
+            mem.copyForwards(u8, output[1 .. 1 + input.len], input);
+        }
+        return input.len + 1;
+    }
+
+    for (0..(HASH_SIZE)) |i| {
+        htab[i] = 0;
+    }
+
+    output[0] = @intCast(MAX_COPY - 1);
+    output[1] = input[0];
+    output[2] = input[1];
+    opIdx = 3;
+    ipIdx = 2;
+
+    while (ipIdx < ipLimitIdx) {
+        var refIdx: u32 = 0;
+        var distance: u32 = 0;
+        var len: u32 = 3;
+
+        var anchorIdx: u32 = ipIdx;
+
+        // find potential match
+        hval = fastlz_hash(input[ipIdx..]);
+        refIdx = htab[hval];
+
+        // calculate distance to the match
+        distance = anchorIdx - refIdx;
+        // update hash table
+        htab[hval] = anchorIdx;
+        // is this a match? check the first 3 bytes
+        if (distance == 0 or distance >= MAX_L1_DISTANCE or input[refIdx] != input[ipIdx] or input[refIdx + 1] != input[ipIdx + 1] or input[refIdx + 2] != input[ipIdx + 2]) {
+            refIdx += 3;
+            ipIdx += 3;
+
+            output[opIdx] = input[anchorIdx];
+            opIdx += 1;
+            anchorIdx += 1;
+            ipIdx = anchorIdx;
+            copy += 1;
+            if (copy == MAX_COPY) {
+                copy = 0;
+                output[opIdx] = @intCast(MAX_COPY - 1);
+                opIdx += 1;
+            }
+            continue;
+        } else {
+            refIdx += 3;
+            ipIdx += 3;
+        }
+        // last matched byte
+        ipIdx = anchorIdx + len;
+
+        // distance is biased
+        distance -= 1;
+
+        if (distance == 0) {
+            // zero distance means a run
+            const x = input[ipIdx - 1];
+            while (ipIdx < ipBoundIdx) {
+                if (input[refIdx] != x) {
+                    refIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+            }
+        } else {
+            while (true) {
+                // safe because the outer check against ip limit
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                if (input[refIdx] != input[ipIdx]) {
+                    refIdx += 1;
+                    ipIdx += 1;
+                    break;
+                } else {
+                    ipIdx += 1;
+                    refIdx += 1;
+                }
+
+                while (ipIdx < ipBoundIdx) {
+                    if (input[refIdx] != input[ipIdx]) {
+                        refIdx += 1;
+                        ipIdx += 1;
+                        break;
+                    } else {
+                        ipIdx += 1;
+                        refIdx += 1;
+                    }
+                }
+                break;
+            }
+        }
+        // if we have copied something, adjust the copy count
+        if (copy != 0) {
+            // copy is biased, '0' means 1 byte copy
+            output[opIdx - copy - 1] = @intCast(copy - 1);
+        } else {
+            // back, to overwrite the copy count
+            opIdx -= 1;
+        }
+        // reset literal counter
+        copy = 0;
+        // length is biased, '1' means a match of 3 bytes
+        ipIdx -= 3;
+        len = ipIdx - anchorIdx;
+
+        // encode the match
+        if (len > MAX_LEN - 2) {
+            while (len > MAX_LEN - 2) {
+                output[opIdx] = @intCast((7 << 5) + (distance >> 8));
+                output[opIdx + 1] = @intCast(MAX_LEN - 2 - 7 - 2);
+                output[opIdx + 2] = @intCast(distance & 255);
+                opIdx += 3;
+                len -= MAX_LEN - 2;
+            }
+        }
+
+        if (len < 7) {
+            output[opIdx] = @intCast((len << 5) + (distance >> 8));
+            output[opIdx + 1] = @intCast(distance & 255);
+            opIdx += 2;
+        } else {
+            output[opIdx] = @intCast((7 << 5) + (distance >> 8));
+            output[opIdx + 1] = @intCast(len - 7);
+            output[opIdx + 2] = @intCast(distance & 255);
+            opIdx += 3;
+        }
+        // update the hash at match boundary
+        hval = fastlz_hash(input[ipIdx..]);
+        htab[hval] = ipIdx;
+        ipIdx += 1;
+        hval = fastlz_hash(input[ipIdx..]);
+        htab[hval] = ipIdx;
+        ipIdx += 1;
+
+        // assuming literal copy
+        output[opIdx] = @intCast(MAX_COPY - 1);
+        opIdx += 1;
+    }
+
+    // left-over as literal copy
+    while (ipIdx < input.len) {
+        output[opIdx] = input[ipIdx];
+        opIdx += 1;
+        ipIdx += 1;
+        copy += 1;
+        if (copy == MAX_COPY) {
+            copy = 0;
+            output[opIdx] = @intCast(MAX_COPY - 1);
+            opIdx += 1;
+        }
+    }
+
+    // if we have copied something, adjust the copy length
+    if (copy != 0) {
+        output[opIdx - copy - 1] = @intCast(copy - 1);
+    } else {
+        opIdx -= 1;
+    }
+
     return opIdx;
 }
