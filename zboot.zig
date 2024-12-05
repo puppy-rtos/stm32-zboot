@@ -12,7 +12,8 @@ const ZC = @import("src/platform/sys.zig").zconfig;
 const Part = @import("src/platform/fal/fal.zig").partition;
 const OTA = @import("src/platform/ota/ota.zig");
 
-const stm32zboot = @embedFile("zig-out/bin/stm32-zboot.bin");
+const stm32zboot = @embedFile("stm32-zboot");
+const stm32app = @embedFile("stm32-app");
 const configjson = @embedFile("config.json");
 
 pub var partition_num: u32 = 0;
@@ -54,6 +55,7 @@ const BUF_SIZE = 1024;
 fn help() void {
     std.debug.print("Usage: \n", .{});
     std.debug.print("  zboot boot: gen stm32-zboot.bin [config.json] \n", .{});
+    std.debug.print("  zboot app:  gen stm32-app.bin \n", .{});
     std.debug.print("  zboot rbl <xxx.bin> <version>: tar xxx.bin to xxx.rbl \n", .{});
     // std.debug.print("  zboot allbin: tar stm32-zboot|app|[swap] to all.bin \n", .{});
 }
@@ -90,8 +92,9 @@ pub fn main() !void {
             input_file = args[2];
             try gen_rbl(input_file, args[3]);
             return;
-        } else if (mem.eql(u8, args[1], "allbin")) {
-            // gen_allbin();
+        } else if (mem.eql(u8, args[1], "app")) {
+            try gen_app();
+            std.debug.print("=> gen stm32-app.bin\n", .{});
             return;
         }
     } else {
@@ -160,6 +163,48 @@ fn gen_boot() !void {
     try buf_write.flush();
     bin_file.close();
 }
+
+fn gen_app() !void {
+    const bin_file = try std.fs.cwd().createFile("./stm32-app.bin", .{});
+
+    var buf_write = std.io.bufferedWriter(bin_file.writer());
+    var out_stream = buf_write.writer();
+
+    // find magic word 'Z' 'B' 'O' 'T' 0x544F425A from tail of bin file
+    var magic_offset: usize = 0;
+    var offset = stm32app.len - @sizeOf(ZC.ZbootConfig);
+    while (offset > 0) {
+        const magic_buf = stm32app[offset..(offset + 4)];
+        if (magic_buf[0] == 0x5A and magic_buf[1] == 0x42 and magic_buf[2] == 0x4F and magic_buf[3] == 0x54) {
+            magic_offset = offset;
+            break;
+        }
+        offset -= 1;
+    }
+    if (magic_offset == 0) {
+        std.debug.print("can't find ZBOOT_CONFIG_MAGIC\n", .{});
+        return;
+    }
+
+    _ = out_stream.write(stm32app[0..magic_offset]) catch {
+        std.debug.print("write file error\n", .{});
+        return;
+    };
+
+    // parse json file
+    try json_parse("config.json");
+    // write zbootconfig data
+    default_zconfig.magic = ZC.ZBOOT_CONFIG_MAGIC;
+    const slice_config = @as([*]u8, @ptrCast((&default_zconfig)))[0..(@sizeOf(ZC.ZbootConfig))];
+    _ = out_stream.write(slice_config) catch {
+        std.debug.print("write file error\n", .{});
+        return;
+    };
+
+    try buf_write.flush();
+    bin_file.close();
+}
+
 const FLZ_BUF_SIZE = 4096;
 const TEMP_FILE = "_crom_tmp.tmp";
 

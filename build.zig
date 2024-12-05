@@ -15,6 +15,13 @@ const examples = [_]Example{
 pub fn build(b: *std.Build) void {
     const optimize = .ReleaseSmall;
 
+    const zboot_tool = b.addExecutable(.{
+        .name = "zboot",
+        .optimize = .ReleaseSmall,
+        .target = b.host,
+        .root_source_file = b.path("zboot.zig"),
+    });
+
     for (examples) |example| {
         const elf = b.addExecutable(.{
             .name = b.fmt("{s}{s}", .{ example.name, ".elf" }),
@@ -51,14 +58,12 @@ pub fn build(b: *std.Build) void {
             b.fmt("{s}{s}", .{ example.name, ".bin" }),
         );
         b.default_step.dependOn(&copy_bin.step);
+        zboot_tool.root_module.addAnonymousImport(
+            example.name,
+            .{ .root_source_file = b.path(b.fmt("zig-out/bin/{s}{s}", .{ example.name, ".bin" })) },
+        );
+        zboot_tool.step.dependOn(&copy_bin.step);
     }
-    const zboot_tool = b.addExecutable(.{
-        .name = "zboot",
-        .optimize = .ReleaseSmall,
-        .target = b.host,
-        .root_source_file = b.path("zboot.zig"),
-    });
-
     b.installArtifact(zboot_tool);
 }
 

@@ -34,7 +34,6 @@ Universal stm32 boot written using zig，Compatible with [RT-Thread stm32-Bootlo
 zig build
 ```
 > Depends on zig-0.13.0
-> The first compilation will report an error, compile again and it will be fine.
 
 ## How to use zboot
 
