@@ -58,10 +58,6 @@ pub fn build(b: *std.Build) void {
             b.fmt("{s}{s}", .{ example.name, ".bin" }),
         );
         b.default_step.dependOn(&copy_bin.step);
-        zboot_tool.root_module.addAnonymousImport(
-            example.name,
-            .{ .root_source_file = b.path(b.fmt("zig-out/bin/{s}{s}", .{ example.name, ".bin" })) },
-        );
         zboot_tool.step.dependOn(&copy_bin.step);
     }
     b.installArtifact(zboot_tool);

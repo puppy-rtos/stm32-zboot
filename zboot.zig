@@ -12,8 +12,8 @@ const ZC = @import("src/platform/sys.zig").zconfig;
 const Part = @import("src/platform/fal/fal.zig").partition;
 const OTA = @import("src/platform/ota/ota.zig");
 
-const stm32zboot = @embedFile("stm32-zboot");
-const stm32app = @embedFile("stm32-app");
+const stm32zboot = @embedFile("zig-out/bin/stm32-zboot.bin");
+const stm32app = @embedFile("zig-out/bin/stm32-app.bin");
 const configjson = @embedFile("config.json");
 
 pub var partition_num: u32 = 0;
