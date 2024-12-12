@@ -125,6 +125,66 @@ pub fn set_4_byte_address_mode(flash: *SfudFlash, enabled: bool) bool {
     return result;
 }
 
+pub fn flash_erase(self: *const Flash.Flash_Dev, addr: u32, size: u32) Flash.FlashErr {
+    _ = self;
+    var cmd_data: [5]u8 = undefined;
+    var cmd_size: u8 = 0;
+    var cur_erase_cmd: u8 = 0;
+    var cur_erase_size: u32 = 0;
+
+    if (addr + size > sfud_flash.capacity) {
+        sys.debug.print("Error: Flash address is out of bound.\r\n", .{}) catch {};
+        return Flash.FlashErr.OutOfBound;
+    }
+
+    var result: bool = true;
+    var cur_addr = addr;
+    var remain_size = size;
+
+    while (remain_size > 0) {
+        cur_erase_cmd = sfud_flash.erase_gran_cmd;
+        cur_erase_size = sfud_flash.erase_gran;
+
+        result = set_flash_write_enable(&sfud_flash, true);
+        if (result != true) {
+            sys.debug.print("Error: Flash write enable failed.\r\n", .{}) catch {};
+            return Flash.FlashErr.ErrWrite;
+        }
+
+        cmd_size = make_flash_cmd_addr(&sfud_flash, cur_erase_cmd, cur_addr, &cmd_data);
+        result = sfud_flash.spi.wr(cmd_data[0..cmd_size], null);
+        if (result != true) {
+            sys.debug.print("Error: Flash erase SPI communicate error.\r\n", .{}) catch {};
+            return Flash.FlashErr.Transfer;
+        }
+        result = wait_for_last_operation(&sfud_flash);
+        if (result != true) {
+            sys.debug.print("Error: Flash wait busy has an error.\r\n", .{}) catch {};
+            return Flash.FlashErr.Busy;
+        }
+
+        // make erase align and calculate next erase address
+        if (cur_addr % cur_erase_size != 0) {
+            if (remain_size > cur_erase_size - (cur_addr % cur_erase_size)) {
+                remain_size -= cur_erase_size - (cur_addr % cur_erase_size);
+                cur_addr += cur_erase_size - (cur_addr % cur_erase_size);
+            } else {
+                break;
+            }
+        } else {
+            if (remain_size > cur_erase_size) {
+                remain_size -= cur_erase_size;
+                cur_addr += cur_erase_size;
+            } else {
+                break;
+            }
+        }
+    }
+    // set the flash write disable
+    _ = set_flash_write_enable(&sfud_flash, false);
+    return Flash.FlashErr.Ok;
+}
+
 pub fn flash_write(self: *const Flash.Flash_Dev, addr: u32, data: []const u8) Flash.FlashErr {
     _ = self;
     var cmd_data: [5 + SFUD_WRITE_MAX_PAGE_SIZE]u8 = undefined;
@@ -211,9 +271,9 @@ pub fn flash_read(self: *const Flash.Flash_Dev, addr: u32, data: []u8) Flash.Fla
 }
 
 // make cmd addr
-fn make_flash_cmd_addr(flash: *const SfudFlash, cmd: SfudCmd, addr: u32, cmd_addr: []u8) u8 {
+fn make_flash_cmd_addr(flash: *const SfudFlash, cmd: anytype, addr: u32, cmd_addr: []u8) u8 {
     var cmd_size: u8 = 0;
-    cmd_addr[0] = @intFromEnum(cmd);
+    cmd_addr[0] = if (@TypeOf(cmd) == SfudCmd) @intFromEnum(cmd) else cmd;
     if (flash.addr_in_4_byte) {
         cmd_addr[1] = @intCast(std.math.shr(u32, addr, 24));
         cmd_addr[2] = @intCast(std.math.shr(u32, addr, 16));
@@ -231,7 +291,7 @@ fn make_flash_cmd_addr(flash: *const SfudFlash, cmd: SfudCmd, addr: u32, cmd_add
 
 const ops: Flash.FlashOps = .{
     .init = null,
-    .erase = null,
+    .erase = &flash_erase,
     .write = &flash_write,
     .read = &flash_read,
 };

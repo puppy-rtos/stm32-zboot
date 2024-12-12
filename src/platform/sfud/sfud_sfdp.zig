@@ -51,12 +51,16 @@ pub fn check_sfdp_header(flash: *const SfudFlash) bool {
 }
 
 // JEDEC Basic Flash Parameter Table
-const JBFPTable = packed struct { DWORD1: packed struct { erase_size: u2, write_gran: u1, used: u29 }, DWORD2: packed struct { flash_density: u31, abvoe_4g: u1 }, DWORD3: u32, DWORD4: u32, DWORD5: u32, DWORD6: u32, DWORD7: u32, DWORD8: packed struct {
-    erase1_gran: u8,
-    erase1_gran_cmd: u8,
-    erase2_gran: u8,
-    erase2_gran_cmd: u8,
-} };
+const JBFPTable = packed struct {
+    DWORD1: packed struct { erase_size: u2, write_gran: u1, used: u29 },
+    DWORD2: packed struct { flash_density: u31, abvoe_4g: u1 },
+    DWORD3: u32,
+    DWORD4: u32,
+    DWORD5: u32,
+    DWORD6: u32,
+    DWORD7: u32,
+    DWORD8: packed struct { erase1_gran: u8, erase1_gran_cmd: u8, erase2_gran: u8, erase2_gran_cmd: u8 },
+};
 
 // probe basic flash parameter table
 pub fn get_basic_para(flash: *SfudFlash) bool {
