@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const stm32f4 = std.zig.CrossTarget{
+const stm32f4 = std.Target.Query{
     .cpu_arch = .thumb,
     .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m3 },
     .os_tag = .freestanding,
@@ -18,9 +18,13 @@ pub fn build(b: *std.Build) void {
     const zboot_tool = b.addExecutable(.{
         .name = "zboot",
         .optimize = .ReleaseSmall,
-        .target = b.host,
+        .target = b.graph.host,
         .root_source_file = b.path("zboot.zig"),
     });
+
+    const timestamp = std.time.timestamp();
+    const options = b.addOptions();
+    options.addOption(i64, "time_stamp", timestamp);
 
     for (examples) |example| {
         const elf = b.addExecutable(.{
@@ -33,6 +37,7 @@ pub fn build(b: *std.Build) void {
 
         elf.setLinkerScript(b.path(example.linker_script));
         elf.addCSourceFile(.{ .file = b.path("src/chip/start.s"), .flags = &.{} });
+        elf.root_module.addOptions("timestamp", options);
 
         // Copy the elf to the output directory.
         const copy_elf = b.addInstallArtifact(elf, .{});
@@ -64,7 +69,7 @@ pub fn build(b: *std.Build) void {
 }
 
 const Example = struct {
-    target: std.zig.CrossTarget,
+    target: std.Target.Query,
     name: []const u8,
     root_file: []const u8,
     linker_script: []const u8,

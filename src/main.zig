@@ -6,6 +6,8 @@ const fal = @import("platform/fal/fal.zig");
 const sfud = @import("platform/sfud/sfud.zig");
 const ota = @import("platform/ota/ota.zig");
 
+const timestamp = @import("timestamp");
+
 pub fn show_logo() void {
     sys.debug.print("\r\n", .{}) catch {};
     sys.debug.print("{s}\r\n", .{"  _____   __                __ "}) catch {};
@@ -13,6 +15,7 @@ pub fn show_logo() void {
     sys.debug.print("{s}\r\n", .{"   / /  / __ \\/ __ \\/ __ \\/ __/"}) catch {};
     sys.debug.print("{s}\r\n", .{"  / /__/ /_/ / /_/ / /_/ / /_  "}) catch {};
     sys.debug.print("{s}\r\n", .{" /____/\\____/\\____/\\____/\\__/  "}) catch {};
+    sys.debug.print("  Build Time: {} \r\n", .{timestamp.time_stamp}) catch {};
 }
 var APP_ENTRY_ADDR: usize = 0x08008000;
 const APP_RAM_ADDR = 0x20000000;

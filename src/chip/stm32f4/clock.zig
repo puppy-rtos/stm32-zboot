@@ -1,6 +1,7 @@
 const std = @import("std");
 const cpu = @import("../cortex-m.zig");
 const regs = @import("regs.zig").devices.stm32f4.peripherals;
+const hal = @import("../../hal/hal.zig");
 
 pub fn clock_init() void {
 
@@ -86,7 +87,7 @@ pub fn get_sysfreq() u32 {
     return sysclockfreq;
 }
 
-pub const clock = .{
+pub const clock: hal.clock.ClockType = .{
     .init = &clock_init,
     .deinit = &clock_deinit,
     .get_sysfreq = &get_sysfreq,

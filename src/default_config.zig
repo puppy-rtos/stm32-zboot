@@ -44,16 +44,18 @@ pub const default_partition: [3]fal.partition.Partition = .{ .{
 } };
 
 comptime {
-    const dc_export_opts = .{
+
+    @export(&default_config, .{
         .name = "default_config",
+        .linkage = .strong,
         .section = "dconfig",
-        .linkage = .strong,
-    };
-    @export(default_config, dc_export_opts);
-    const df_export_opts = .{
+        .visibility = .default,
+    });
+
+    @export(&default_partition, .{
         .name = "default_partition",
-        .section = "fal",
         .linkage = .strong,
-    };
-    @export(default_partition, df_export_opts);
+        .section = "fal",
+        .visibility = .default,
+    });
 }
