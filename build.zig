@@ -39,6 +39,12 @@ pub fn build(b: *std.Build) void {
         elf.addCSourceFile(.{ .file = b.path("src/chip/start.s"), .flags = &.{} });
         elf.root_module.addOptions("timestamp", options);
 
+        // reduce the size of the binary
+        elf.link_function_sections = true;
+        elf.link_data_sections = true;
+        elf.link_gc_sections = true;
+        // elf.want_lto = true;
+
         // Copy the elf to the output directory.
         const copy_elf = b.addInstallArtifact(elf, .{});
         b.default_step.dependOn(&copy_elf.step);
